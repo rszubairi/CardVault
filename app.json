@@ -1,25 +1,81 @@
 {
   "expo": {
-    "name": "Business Card Scanner",
-    "slug": "business-card-scanner",
+    "name": "CardVault",
+    "slug": "cardvault",
+    "scheme": "cardvault",
     "version": "1.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.business-card-scanner"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+      "bundleIdentifier": "com.cardvault.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "CardVault needs camera access to scan business cards.",
+        "NSPhotoLibraryUsageDescription": "CardVault needs photo library access to save and import business card images.",
+        "NSCalendarsUsageDescription": "CardVault uses your calendar to link contacts to events where you met them.",
+        "NSMicrophoneUsageDescription": "CardVault needs microphone access to record voice notes.",
+        "NSFaceIDUsageDescription": "CardVault uses Face ID to securely lock your contacts."
       }
     },
+    "android": {
+      "package": "com.cardvault.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F172A"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_CALENDAR",
+        "WRITE_CALENDAR",
+        "RECORD_AUDIO",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT",
+        "VIBRATE"
+      ]
+    },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "CardVault needs camera access to scan business cards."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#6366F1"
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "CardVault uses Face ID to protect your contacts."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
     }
   }
 }
