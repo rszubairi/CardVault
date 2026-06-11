@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
+import { clearSession } from '../../../src/lib/auth';
 import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 
@@ -70,7 +71,8 @@ export default function SettingsScreen() {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
+            await clearSession();
             signOut();
             router.replace('/(auth)/');
           },

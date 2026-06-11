@@ -13,7 +13,7 @@ export interface UserProfile {
   company?: string;
   designation?: string;
   profilePhoto?: string;
-  createdAt: number;
+  createdAt?: number;
 }
 
 // ─── Contact ─────────────────────────────────────────────────────────────────

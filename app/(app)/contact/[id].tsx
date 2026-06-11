@@ -17,6 +17,8 @@ import { Id } from '../../../convex/_generated/dataModel';
 import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import Button from '../../../src/components/ui/Button';
+import WhatsAppModal from '../../../src/components/WhatsAppModal';
+import { useAuthStore } from '../../../src/stores/authStore';
 
 const TAGS_PRESET = [
   'Investor', 'Healthcare', 'VC', 'AI', 'Government',
@@ -58,7 +60,9 @@ export default function ContactDetailScreen() {
   const logInteraction = useMutation(api.interactions.log);
   const toggleFav      = useMutation(api.contacts.toggleFavorite);
 
-  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [tagsExpanded, setTagsExpanded]     = useState(false);
+  const [whatsappOpen, setWhatsappOpen]     = useState(false);
+  const { user } = useAuthStore();
 
   if (!contact) {
     return (
@@ -74,13 +78,7 @@ export default function ContactDetailScreen() {
 
   const openWhatsApp = () => {
     if (!contact.phone && !contact.mobile) return;
-    const number = (contact.mobile ?? contact.phone)!.replace(/\D/g, '');
-    const message = encodeURIComponent(
-      `Hi ${contact.firstName},\n\nGreat meeting you! Looking forward to staying connected.\n\nBest,`,
-    );
-    const url = `https://wa.me/${number}?text=${message}`;
-    Linking.openURL(url);
-    logInteraction({ contactId: contact._id, userId: contact.userId, type: 'whatsapp_sent' });
+    setWhatsappOpen(true);
   };
 
   const openLinkedIn = () => {
@@ -237,6 +235,16 @@ export default function ContactDetailScreen() {
           </View>
         )}
       </ScrollView>
+
+      {(contact.phone || contact.mobile) && (
+        <WhatsAppModal
+          visible={whatsappOpen}
+          contact={contact as any}
+          senderName={user?.name ?? 'Me'}
+          onClose={() => setWhatsappOpen(false)}
+          onSent={() => logInteraction({ contactId: contact._id, userId: contact.userId, type: 'whatsapp_sent' })}
+        />
+      )}
     </SafeAreaView>
   );
 }

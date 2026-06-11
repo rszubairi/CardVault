@@ -20,6 +20,8 @@ import Button from '../../../src/components/ui/Button';
 import Card from '../../../src/components/ui/Card';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
+import EventPicker from '../../../src/components/EventPicker';
+import { CalendarEvent } from '../../../src/lib/calendar';
 
 export default function ScanResultScreen() {
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
@@ -28,9 +30,11 @@ export default function ScanResultScreen() {
   const { incrementScanCount } = useSubscriptionStore();
   const createContact = useMutation(api.contacts.create);
 
-  const [scanning, setScanning] = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [ocr, setOcr]           = useState<OcrResult | null>(null);
+  const [scanning, setScanning]           = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [ocr, setOcr]                     = useState<OcrResult | null>(null);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const [fields, setFields] = useState({
     firstName:   '',
@@ -63,6 +67,7 @@ export default function ScanResultScreen() {
           linkedinUrl: result.linkedinUrl ?? '',
           address:     '',
         });
+        setEventPickerOpen(true);
       })
       .catch(() => Alert.alert('OCR Error', 'Could not extract text. Please fill in manually.'))
       .finally(() => setScanning(false));
@@ -89,6 +94,8 @@ export default function ScanResultScreen() {
         companyDomain:ocr?.companyDomain,
         country:      ocr?.country,
         cardImageFront: imageUri,
+        metDate:      selectedEvent ? selectedEvent.startDate.getTime() : undefined,
+        metLocation:  selectedEvent?.location,
         tags:         [],
         favorite:     false,
         source:       'scan',
@@ -214,12 +221,27 @@ export default function ScanResultScreen() {
               autoCapitalize="none"
             />
 
+            {/* Event badge */}
+            <TouchableOpacity
+              onPress={() => setEventPickerOpen(true)}
+              className="flex-row items-center bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 mb-4"
+            >
+              <Ionicons name="location-outline" size={18} color="#6366F1" />
+              <View className="flex-1 ml-3">
+                <Text className="text-slate-400 text-xs">Met at event</Text>
+                <Text className="text-slate-200 text-sm mt-0.5">
+                  {selectedEvent ? selectedEvent.title : 'Tap to select an event'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#475569" />
+            </TouchableOpacity>
+
             <Button
               label="Save Contact"
               fullWidth
               loading={saving}
               onPress={handleSave}
-              className="mt-4"
+              className="mt-2"
             />
             <Button
               label="Discard"
@@ -231,6 +253,12 @@ export default function ScanResultScreen() {
           </>
         )}
       </ScrollView>
+
+      <EventPicker
+        visible={eventPickerOpen}
+        onSelect={setSelectedEvent}
+        onDismiss={() => setEventPickerOpen(false)}
+      />
     </SafeAreaView>
   );
 }

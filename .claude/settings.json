@@ -2,7 +2,25 @@
   "permissions": {
     "allow": [
       "Bash(rm -rf node_modules package-lock.json)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(npm show *)",
+      "Bash(node -e \"const v=require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\); const arr=JSON.parse\\(v\\); console.log\\(arr.slice\\(-10\\).join\\('\\\\n'\\)\\)\")",
+      "PowerShell(npm show expo-media-library versions --json 2>$null)",
+      "PowerShell(npm show expo version 2>$null)",
+      "PowerShell(npm show expo-router version 2>$null)",
+      "PowerShell(npm show react-native version 2>$null)",
+      "PowerShell(npm show expo-camera version 2>$null)",
+      "PowerShell(npm show expo-sqlite version 2>$null)",
+      "PowerShell(npm show expo-auth-session version 2>$null)",
+      "PowerShell(npm show expo-secure-store version 2>$null)",
+      "PowerShell(npm show convex version 2>$null)",
+      "PowerShell(npm show nativewind version 2>$null)",
+      "PowerShell(npm show expo-av version 2>$null)",
+      "PowerShell(npm show expo-calendar version 2>$null)",
+      "PowerShell(npm show expo-local-authentication version 2>$null)",
+      "PowerShell(npm show expo-notifications version 2>$null)",
+      "PowerShell(npm show expo-splash-screen version 2>$null)",
+      "PowerShell(npm show react version 2>$null)"
     ]
   }
 }

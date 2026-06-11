@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stack, Redirect } from 'expo-router';
-import { useAuthStore } from '../../src/stores/authStore';
 import { View, ActivityIndicator } from 'react-native';
+import { useAuthStore } from '../../src/stores/authStore';
 
 export default function AppLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -23,7 +23,11 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="contact/[id]"
-        options={{ presentation: 'card', animation: 'slide_from_right' }}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="contact/new"
+        options={{ presentation: 'modal' }}
       />
       <Stack.Screen
         name="scan/result"
@@ -31,7 +35,7 @@ export default function AppLayout() {
       />
       <Stack.Screen
         name="event/[id]"
-        options={{ presentation: 'card', animation: 'slide_from_right' }}
+        options={{ animation: 'slide_from_right' }}
       />
       <Stack.Screen
         name="upgrade"

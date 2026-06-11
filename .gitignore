@@ -1,1 +1,36 @@
-node_modules
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Convex
+.convex/
+
+# TypeScript build
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+
+# iOS
+ios/build/
+ios/DerivedData/
+
+# Android
+android/build/
+android/.gradle/
+android/app/build/
