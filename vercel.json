@@ -1,5 +1,4 @@
 {
   "framework": "nextjs",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- website/"
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- ."
 }
-
