@@ -1,6 +1,6 @@
 import '../global.css';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { loadSession } from '../src/lib/auth';
 import { useAuthStore } from '../src/stores/authStore';
 import { api } from '../convex/_generated/api';
+import AnimatedSplashScreen from '../src/components/AnimatedSplashScreen';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -38,11 +39,21 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const updatePushToken = useMutation(api.users.updatePushToken);
   const router          = useRouter();
   const navigated       = useRef(false);
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Hide the native splash screen immediately on mount
+  // so our animated version takes over
+  useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
 
   useEffect(() => {
     Promise.all([
       loadSession(),
-      SecureStore.getItemAsync('hasSeenOnboarding'),
+      Platform.OS === 'web'
+        ? Promise.resolve(localStorage.getItem('hasSeenOnboarding'))
+        : SecureStore.getItemAsync('hasSeenOnboarding'),
     ])
       .then(([session, seen]) => {
         if (seen !== '1' && !navigated.current) {
@@ -58,7 +69,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => setLoading(false))
-      .finally(() => SplashScreen.hideAsync());
+      .finally(() => setIsBootstrapped(true));
   }, []);
 
   // Register for push notifications once the user is known
@@ -81,7 +92,21 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
     })().catch(() => {});
   }, [user?._id]);
 
-  return <>{children}</>;
+  const handleSplashComplete = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  return (
+    <>
+      {children}
+      {showSplash && (
+        <AnimatedSplashScreen
+          isReady={isBootstrapped}
+          onAnimationComplete={handleSplashComplete}
+        />
+      )}
+    </>
+  );
 }
 
 export default function RootLayout() {
@@ -103,3 +128,4 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+

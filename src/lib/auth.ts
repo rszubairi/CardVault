@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -8,16 +9,32 @@ const TOKEN_KEY   = 'cardvault_token';
 const USER_KEY    = 'cardvault_user';
 
 // ─── Secure storage helpers ───────────────────────────────────────────────────
+// expo-secure-store has no web implementation; fall back to localStorage on web.
+
+const storage = {
+  async getItem(key: string): Promise<string | null> {
+    if (Platform.OS === 'web') return localStorage.getItem(key);
+    return SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    if (Platform.OS === 'web') { localStorage.setItem(key, value); return; }
+    await SecureStore.setItemAsync(key, value);
+  },
+  async deleteItem(key: string): Promise<void> {
+    if (Platform.OS === 'web') { localStorage.removeItem(key); return; }
+    await SecureStore.deleteItemAsync(key);
+  },
+};
 
 export async function storeSession(token: string, user: object) {
-  await SecureStore.setItemAsync(TOKEN_KEY, token);
-  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
+  await storage.setItem(TOKEN_KEY, token);
+  await storage.setItem(USER_KEY, JSON.stringify(user));
 }
 
 export async function loadSession(): Promise<{ token: string; user: any } | null> {
   const [token, userStr] = await Promise.all([
-    SecureStore.getItemAsync(TOKEN_KEY),
-    SecureStore.getItemAsync(USER_KEY),
+    storage.getItem(TOKEN_KEY),
+    storage.getItem(USER_KEY),
   ]);
   if (!token || !userStr) return null;
   try {
@@ -29,8 +46,8 @@ export async function loadSession(): Promise<{ token: string; user: any } | null
 
 export async function clearSession() {
   await Promise.all([
-    SecureStore.deleteItemAsync(TOKEN_KEY),
-    SecureStore.deleteItemAsync(USER_KEY),
+    storage.deleteItem(TOKEN_KEY),
+    storage.deleteItem(USER_KEY),
   ]);
 }
 
