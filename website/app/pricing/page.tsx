@@ -136,12 +136,12 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <a
-                href="mailto:enterprise@cardvault.app"
+              <Link
+                href="/contact"
                 className="block text-center border border-white/15 hover:border-white/30 text-white text-sm font-semibold px-5 py-3 rounded-xl transition-colors"
               >
                 Contact Sales
-              </a>
+              </Link>
             </div>
           </div>
 

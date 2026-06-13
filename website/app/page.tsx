@@ -8,36 +8,88 @@ export const metadata: Metadata = {
   title: 'CardVault — AI Business Card CRM',
 };
 
+// ─── Feature icons ────────────────────────────────────────────────────────────
+
+const IconCamera = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+    <circle cx="12" cy="13" r="4"/>
+  </svg>
+);
+
+const IconTag = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+    <circle cx="7" cy="7" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
+const IconMic = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="23"/>
+    <line x1="8" y1="23" x2="16" y2="23"/>
+  </svg>
+);
+
+const IconCalendar = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+    <line x1="16" y1="2" x2="16" y2="6"/>
+    <line x1="8" y1="2" x2="8" y2="6"/>
+    <line x1="3" y1="10" x2="21" y2="10"/>
+    <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
+const IconUsers = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
+
+const IconLock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    <circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
 // ─── Feature data ─────────────────────────────────────────────────────────────
 
 const FEATURES = [
   {
-    icon: '📷',
+    Icon: IconCamera,
     title: 'Instant AI Scanning',
     desc:  'Point your camera at any card. Our ML engine extracts every field — name, company, email, phone, website — in under a second.',
   },
   {
-    icon: '🧠',
+    Icon: IconTag,
     title: 'Smart Organization',
     desc:  'Auto-tag contacts by company, event, or topic. Full-text search across thousands of contacts in milliseconds.',
   },
   {
-    icon: '🎙️',
+    Icon: IconMic,
     title: 'Voice Notes',
     desc:  'Record what matters right after a conversation. Voice and text notes are linked to each contact and searchable.',
   },
   {
-    icon: '📅',
+    Icon: IconCalendar,
     title: 'Follow-up Reminders',
     desc:  'Set follow-up dates and get notified automatically. CardVault tracks every interaction so you never miss a touchpoint.',
   },
   {
-    icon: '🏢',
+    Icon: IconUsers,
     title: 'Team Sharing',
     desc:  'Enterprise teams share a live contact database. Role-based access, duplicate detection, and real-time sync.',
   },
   {
-    icon: '🔒',
+    Icon: IconLock,
     title: 'Biometric Lock',
     desc:  'Face ID and fingerprint protection keep your contacts private. Auto-locks when the app goes to background.',
   },
@@ -159,7 +211,9 @@ export default function Home() {
                 key={f.title}
                 className="border-gradient rounded-2xl p-6 bg-[#0d1117] hover:bg-[#111827] transition-colors group"
               >
-                <span className="text-3xl mb-4 block">{f.icon}</span>
+                <div className="w-12 h-12 rounded-xl bg-brand-900/50 border border-brand-800/30 flex items-center justify-center text-brand-400 mb-4 group-hover:bg-brand-900/70 transition-colors">
+                  <f.Icon />
+                </div>
                 <h3 className="text-white font-semibold text-lg mb-2 group-hover:text-brand-300 transition-colors">
                   {f.title}
                 </h3>
@@ -239,7 +293,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/pricing"
+                href="/contact"
                 className="block text-center border border-white/15 hover:border-white/30 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors"
               >
                 Contact Sales
