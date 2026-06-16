@@ -1,70 +1,168 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   FlatList,
   TouchableOpacity,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useContactStore } from '../../../src/stores/contactStore';
-import { Contact } from '../../../src/types';
-import Badge from '../../../src/components/ui/Badge';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { useAuthStore } from '../../../src/stores/authStore';
+import { Doc } from '../../../convex/_generated/dataModel';
 
-function ContactRow({ contact, onPress }: { contact: Contact; onPress: () => void }) {
+// ─── Card colour palettes ─────────────────────────────────────────────────────
+
+const PALETTES = [
+  { bg: '#1E1B4B', accent: '#818CF8', text: '#C7D2FE' },
+  { bg: '#064E3B', accent: '#34D399', text: '#A7F3D0' },
+  { bg: '#1E3A5F', accent: '#60A5FA', text: '#BFDBFE' },
+  { bg: '#3B0764', accent: '#C084FC', text: '#E9D5FF' },
+  { bg: '#1C1917', accent: '#FBBF24', text: '#FDE68A' },
+  { bg: '#0F1F3D', accent: '#22D3EE', text: '#A5F3FC' },
+  { bg: '#1F2937', accent: '#FB7185', text: '#FECDD3' },
+  { bg: '#1A2E05', accent: '#86EFAC', text: '#D9F99D' },
+];
+
+function palette(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = seed.charCodeAt(i) + ((h << 5) - h);
+  return PALETTES[Math.abs(h) % PALETTES.length];
+}
+
+// ─── Business Card tile ───────────────────────────────────────────────────────
+
+type ConvexContact = Doc<'contacts'>;
+
+function BusinessCard({
+  contact,
+  onPress,
+}: {
+  contact: ConvexContact;
+  onPress: () => void;
+}) {
+  const fullName = `${contact.firstName} ${contact.lastName}`.trim();
   const initials = `${contact.firstName?.[0] ?? ''}${contact.lastName?.[0] ?? ''}`.toUpperCase();
+  const seed     = contact.company ?? fullName;
+  const pal      = palette(seed);
+
   return (
     <TouchableOpacity
-      className="flex-row items-center px-5 py-4 border-b border-surface-800"
       onPress={onPress}
+      activeOpacity={0.85}
+      style={{ width: '48%', marginBottom: 12 }}
     >
-      <View className="w-12 h-12 bg-primary-900 rounded-full items-center justify-center mr-4">
-        <Text className="text-primary-300 text-base font-bold">{initials || '?'}</Text>
-      </View>
-      <View className="flex-1">
-        <Text className="text-slate-100 text-base font-semibold">
-          {contact.firstName} {contact.lastName}
+      <View
+        style={{
+          backgroundColor: pal.bg,
+          borderRadius: 16,
+          padding: 14,
+          minHeight: 148,
+          justifyContent: 'space-between',
+          borderWidth: 1,
+          borderColor: pal.accent + '33',
+        }}
+      >
+        {/* Top row: company + star */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Text
+            style={{
+              color: pal.accent,
+              fontSize: 9,
+              fontWeight: '700',
+              letterSpacing: 1.2,
+              textTransform: 'uppercase',
+              flex: 1,
+              marginRight: 4,
+            }}
+            numberOfLines={2}
+          >
+            {contact.company ?? '—'}
+          </Text>
+          {contact.favorite && (
+            <Ionicons name="star" size={12} color="#FBBF24" />
+          )}
+        </View>
+
+        {/* Accent divider */}
+        <View style={{ height: 1, backgroundColor: pal.accent + '44', marginVertical: 8 }} />
+
+        {/* Name */}
+        <Text
+          style={{ color: '#F1F5F9', fontSize: 14, fontWeight: '700', lineHeight: 18 }}
+          numberOfLines={2}
+        >
+          {fullName}
         </Text>
-        {contact.designation || contact.company ? (
-          <Text className="text-slate-400 text-sm mt-0.5" numberOfLines={1}>
-            {[contact.designation, contact.company].filter(Boolean).join(' · ')}
+
+        {/* Designation */}
+        {contact.designation ? (
+          <Text
+            style={{ color: pal.text, fontSize: 10, marginTop: 3, opacity: 0.85 }}
+            numberOfLines={1}
+          >
+            {contact.designation}
           </Text>
         ) : null}
-        {contact.tags?.length > 0 && (
-          <View className="flex-row flex-wrap gap-1 mt-1.5">
-            {contact.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} label={tag} variant="neutral" />
-            ))}
+
+        {/* Bottom row: source chip + initials circle */}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+          {contact.email ? (
+            <Text style={{ color: pal.accent, fontSize: 9, opacity: 0.7 }} numberOfLines={1}>
+              {contact.email.split('@')[1] ?? ''}
+            </Text>
+          ) : <View />}
+
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: pal.accent + '33',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ color: pal.accent, fontSize: 10, fontWeight: '700' }}>{initials || '?'}</Text>
           </View>
-        )}
+        </View>
       </View>
-      {contact.favorite && (
-        <Ionicons name="star" size={16} color="#FBBF24" className="ml-2" />
-      )}
-      <Ionicons name="chevron-forward" size={16} color="#475569" />
     </TouchableOpacity>
   );
 }
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 export default function ContactsScreen() {
-  const router = useRouter();
-  const { contacts, searchQuery, setSearchQuery } = useContactStore();
+  const router          = useRouter();
+  const { user }        = useAuthStore();
+  const [query, setQuery]               = useState('');
   const [filterFavorites, setFilterFavorites] = useState(false);
 
-  const filtered = contacts.filter((c) => {
-    const q = searchQuery.toLowerCase();
-    const matchesQuery =
-      !q ||
-      c.firstName?.toLowerCase().includes(q) ||
-      c.lastName?.toLowerCase().includes(q) ||
-      c.company?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.tags?.some((t) => t.toLowerCase().includes(q));
-    const matchesFav = !filterFavorites || c.favorite;
-    return matchesQuery && matchesFav;
-  });
+  const contacts = useQuery(
+    api.contacts.list,
+    user ? { userId: user._id } : 'skip',
+  );
+
+  const filtered = useMemo(() => {
+    if (!contacts) return [];
+    const q = query.toLowerCase();
+    return contacts.filter((c) => {
+      const matchesQuery =
+        !q ||
+        c.firstName?.toLowerCase().includes(q) ||
+        c.lastName?.toLowerCase().includes(q) ||
+        c.company?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.tags?.some((t) => t.toLowerCase().includes(q));
+      const matchesFav = !filterFavorites || c.favorite;
+      return matchesQuery && matchesFav;
+    });
+  }, [contacts, query, filterFavorites]);
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
@@ -95,12 +193,12 @@ export default function ContactsScreen() {
             className="flex-1 ml-3 text-slate-100 text-base"
             placeholder="Search name, company, tag..."
             placeholderTextColor="#64748B"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={query}
+            onChangeText={setQuery}
             autoCorrect={false}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
+          {query.length > 0 && (
+            <TouchableOpacity onPress={() => setQuery('')}>
               <Ionicons name="close-circle" size={18} color="#64748B" />
             </TouchableOpacity>
           )}
@@ -108,14 +206,23 @@ export default function ContactsScreen() {
       </View>
 
       {/* Count */}
-      <View className="px-5 py-2">
-        <Text className="text-slate-500 text-xs">
-          {filtered.length} {filtered.length === 1 ? 'contact' : 'contacts'}
-        </Text>
-      </View>
+      {contacts !== undefined && (
+        <View className="px-5 pb-2">
+          <Text className="text-slate-500 text-xs">
+            {filtered.length} {filtered.length === 1 ? 'contact' : 'contacts'}
+          </Text>
+        </View>
+      )}
 
-      {/* List */}
-      {filtered.length === 0 ? (
+      {/* Loading */}
+      {contacts === undefined && (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color="#6366F1" size="large" />
+        </View>
+      )}
+
+      {/* Empty */}
+      {contacts !== undefined && filtered.length === 0 && (
         <View className="flex-1 items-center justify-center px-10">
           <Ionicons name="people-outline" size={52} color="#334155" />
           <Text className="text-slate-400 text-base text-center mt-4">
@@ -123,18 +230,31 @@ export default function ContactsScreen() {
               ? 'No contacts yet.\nScan a business card to get started.'
               : 'No contacts match your search.'}
           </Text>
+          {contacts.length === 0 && (
+            <TouchableOpacity
+              className="mt-5 bg-primary-500 px-6 py-3 rounded-xl"
+              onPress={() => router.push('/(app)/(tabs)/scan')}
+            >
+              <Text className="text-white text-sm font-semibold">Scan a Card</Text>
+            </TouchableOpacity>
+          )}
         </View>
-      ) : (
+      )}
+
+      {/* Business card grid */}
+      {contacts !== undefined && filtered.length > 0 && (
         <FlatList
           data={filtered}
           keyExtractor={(item) => item._id}
+          numColumns={2}
+          columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 20 }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 32 }}
           renderItem={({ item }) => (
-            <ContactRow
+            <BusinessCard
               contact={item}
-              onPress={() => router.push(`/(app)/contact/${item._id}`)}
+              onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: item._id } })}
             />
           )}
-          contentContainerStyle={{ paddingBottom: 24 }}
         />
       )}
     </SafeAreaView>

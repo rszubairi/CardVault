@@ -3,6 +3,7 @@ import {
   View,
   Text,
   ScrollView,
+  Image,
   TouchableOpacity,
   Linking,
   Alert,
@@ -56,8 +57,12 @@ function InfoRow({
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
-  const contact = useQuery(api.contacts.getById, { contactId: id as Id<'contacts'> });
-  const notes   = useQuery(api.notes.list, { contactId: id as Id<'contacts'> });
+  const contact    = useQuery(api.contacts.getById, { contactId: id as Id<'contacts'> });
+  const notes      = useQuery(api.notes.list, { contactId: id as Id<'contacts'> });
+  const cardImageUrl = useQuery(
+    api.contacts.getStorageUrl,
+    contact?.cardImageFront ? { storageId: contact.cardImageFront } : 'skip',
+  );
   const logInteraction = useMutation(api.interactions.log);
   const toggleFav      = useMutation(api.contacts.toggleFavorite);
 
@@ -188,6 +193,17 @@ export default function ContactDetailScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Business Card Image */}
+        {cardImageUrl && (
+          <Card className="mx-5 mb-4 overflow-hidden">
+            <Image
+              source={{ uri: cardImageUrl }}
+              style={{ width: '100%', height: 180 }}
+              resizeMode="cover"
+            />
+          </Card>
+        )}
 
         {/* Contact Info */}
         <Card className="mx-5 mb-4 px-5">

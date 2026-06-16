@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,18 +23,41 @@ import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import EventPicker from '../../../src/components/EventPicker';
 import { CalendarEvent } from '../../../src/lib/calendar';
 
+async function uploadImageToConvex(
+  localUri: string,
+  getUploadUrl: () => Promise<string>,
+): Promise<string | undefined> {
+  try {
+    const uploadUrl = await getUploadUrl();
+    const response  = await fetch(localUri);
+    const blob      = await response.blob();
+    const upload    = await fetch(uploadUrl, {
+      method:  'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg' },
+      body:    blob,
+    });
+    if (!upload.ok) return undefined;
+    const { storageId } = await upload.json();
+    return storageId as string;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function ScanResultScreen() {
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
   const router = useRouter();
   const { user } = useAuthStore();
   const { incrementScanCount } = useSubscriptionStore();
-  const createContact = useMutation(api.contacts.create);
+  const createContact   = useMutation(api.contacts.create);
+  const generateUploadUrl = useMutation(api.contacts.generateUploadUrl);
 
   const [scanning, setScanning]           = useState(true);
   const [saving, setSaving]               = useState(false);
   const [ocr, setOcr]                     = useState<OcrResult | null>(null);
   const [eventPickerOpen, setEventPickerOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const storageIdRef = useRef<string | undefined>(undefined);
 
   const [fields, setFields] = useState({
     firstName:   '',
@@ -52,18 +75,24 @@ export default function ScanResultScreen() {
   useEffect(() => {
     if (!imageUri) return;
 
+    // Upload runs in background — doesn't block the form from showing
+    uploadImageToConvex(imageUri, generateUploadUrl)
+      .then((storageId) => { storageIdRef.current = storageId; })
+      .catch(() => { /* will retry at save time */ });
+
+    // OCR alone controls the loading state
     extractFromImage(imageUri)
       .then((result) => {
         setOcr(result);
         setFields({
-          firstName:   result.firstName  ?? '',
-          lastName:    result.lastName   ?? '',
+          firstName:   result.firstName   ?? '',
+          lastName:    result.lastName    ?? '',
           designation: result.designation ?? '',
-          company:     result.company    ?? '',
-          email:       result.email      ?? '',
-          phone:       result.phone      ?? '',
-          mobile:      result.mobile     ?? '',
-          website:     result.website    ?? '',
+          company:     result.company     ?? '',
+          email:       result.email       ?? '',
+          phone:       result.phone       ?? '',
+          mobile:      result.mobile      ?? '',
+          website:     result.website     ?? '',
           linkedinUrl: result.linkedinUrl ?? '',
           address:     '',
         });
@@ -80,6 +109,12 @@ export default function ScanResultScreen() {
     }
     setSaving(true);
     try {
+      // If background upload hasn't finished yet, try once more at save time
+      if (!storageIdRef.current && imageUri) {
+        storageIdRef.current = await uploadImageToConvex(imageUri, generateUploadUrl)
+          .catch(() => undefined);
+      }
+
       const contactId = await createContact({
         userId:       user._id,
         firstName:    fields.firstName,
@@ -93,7 +128,7 @@ export default function ScanResultScreen() {
         linkedinUrl:  fields.linkedinUrl || undefined,
         companyDomain:ocr?.companyDomain,
         country:      ocr?.country,
-        cardImageFront: imageUri,
+        cardImageFront: storageIdRef.current,
         metDate:      selectedEvent ? selectedEvent.startDate.getTime() : undefined,
         metLocation:  selectedEvent?.location,
         tags:         [],

@@ -10,7 +10,7 @@ import * as SecureStore from 'expo-secure-store';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ConvexProvider, ConvexReactClient, useMutation } from 'convex/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { loadSession } from '../src/lib/auth';
+import { loadSession, clearSession } from '../src/lib/auth';
 import { useAuthStore } from '../src/stores/authStore';
 import { api } from '../convex/_generated/api';
 import AnimatedSplashScreen from '../src/components/AnimatedSplashScreen';
@@ -19,11 +19,11 @@ SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert:  true,
-    shouldPlaySound:  true,
-    shouldSetBadge:   true,
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
     shouldShowBanner: true,
-    shouldShowList:   true,
+    shouldShowList: true,
   }),
 });
 
@@ -37,8 +37,8 @@ const queryClient = new QueryClient({
 function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const { setUser, setToken, setLoading, user } = useAuthStore();
   const updatePushToken = useMutation(api.users.updatePushToken);
-  const router          = useRouter();
-  const navigated       = useRef(false);
+  const router = useRouter();
+  const navigated = useRef(false);
   const [isBootstrapped, setIsBootstrapped] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
 
@@ -62,8 +62,14 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
         }
 
         if (session) {
-          setToken(session.token);
-          setUser(session.user);
+          const storedUserId = session.user?._id ?? '';
+          const isValidConvexId = storedUserId.startsWith('users:') || storedUserId.startsWith('u');
+          if (!isValidConvexId) {
+            clearSession().then(() => setLoading(false));
+          } else {
+            setToken(session.token);
+            setUser(session.user);
+          }
         } else {
           setLoading(false);
         }
@@ -82,14 +88,14 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('default', {
-          name:       'Default',
+          name: 'Default',
           importance: Notifications.AndroidImportance.MAX,
         });
       }
 
       const token = (await Notifications.getExpoPushTokenAsync()).data;
       await updatePushToken({ userId: user._id, pushToken: token });
-    })().catch(() => {});
+    })().catch(() => { });
   }, [user?._id]);
 
   const handleSplashComplete = useCallback(() => {

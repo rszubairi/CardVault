@@ -27,13 +27,10 @@ npm-debug.log*
 .idea/
 
 # iOS
-ios/build/
-ios/DerivedData/
+ios/
 
 # Android
-android/build/
-android/.gradle/
-android/app/build/
+android/
 
 # Website (Next.js build artifacts)
 website/.next/

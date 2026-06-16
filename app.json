@@ -6,16 +6,13 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
-    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cardvault.app",
+      "bundleIdentifier": "com.cardvault.ios",
       "infoPlist": {
         "NSCameraUsageDescription": "CardVault needs camera access to scan business cards.",
         "NSPhotoLibraryUsageDescription": "CardVault needs photo library access to save and import business card images.",
@@ -25,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.cardvault.app",
+      "package": "com.cardvault.android",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F172A"
@@ -39,7 +36,11 @@
         "RECORD_AUDIO",
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
       ]
     },
     "web": {
@@ -49,6 +50,14 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0F172A",
+          "image": "./assets/splash.png",
+          "resizeMode": "contain"
+        }
+      ],
       [
         "expo-camera",
         {
@@ -67,15 +76,18 @@
         {
           "faceIDPermission": "CardVault uses Face ID to protect your contacts."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "122beacb-9b7b-41bd-91cc-0efc20f2b5eb"
       }
-    }
+    },
+    "owner": "rzubairi"
   }
 }

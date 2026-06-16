@@ -16,7 +16,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../../convex/_generated/api';
 import { Id } from '../../../../convex/_generated/dataModel';
-import { Audio } from 'expo-av';
+import {
+  createAudioPlayer,
+  AudioPlayer,
+  setAudioModeAsync,
+  requestRecordingPermissionsAsync,
+  RecordingPresets,
+} from 'expo-audio';
 import { format } from 'date-fns';
 import Card from '../../../../src/components/ui/Card';
 import { useAuthStore } from '../../../../src/stores/authStore';
@@ -31,34 +37,40 @@ function formatDuration(seconds: number): string {
 
 function VoiceNoteRow({ audioUrl, duration }: { audioUrl: string; duration: string }) {
   const [playing, setPlaying] = useState(false);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
 
-  useEffect(() => () => { sound?.unloadAsync(); }, [sound]);
+  useEffect(() => {
+    return () => {
+      playerRef.current?.remove();
+      playerRef.current = null;
+    };
+  }, []);
 
   const toggle = async () => {
-    if (playing) {
-      await sound?.pauseAsync();
+    if (playing && playerRef.current) {
+      playerRef.current.pause();
       setPlaying(false);
       return;
     }
-    if (sound) {
-      await sound.playAsync();
+    if (playerRef.current) {
+      playerRef.current.play();
       setPlaying(true);
       return;
     }
     try {
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: audioUrl },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            setPlaying(false);
-            setSound(null);
-          }
-        },
-      );
-      setSound(newSound);
+      const player = createAudioPlayer(audioUrl);
+      playerRef.current = player;
+      player.play();
       setPlaying(true);
+
+      // Poll for playback finished
+      const checkInterval = setInterval(() => {
+        if (player.currentTime >= player.duration - 0.5) {
+          clearInterval(checkInterval);
+          setPlaying(false);
+          playerRef.current = null;
+        }
+      }, 500);
     } catch {
       Alert.alert('Playback Error', 'Could not play voice note.');
     }
@@ -89,28 +101,28 @@ function VoiceNoteRow({ audioUrl, duration }: { audioUrl: string; duration: stri
 }
 
 export default function ContactNotesScreen() {
-  const { id }         = useLocalSearchParams<{ id: string }>();
-  const router         = useRouter();
-  const { user }       = useAuthStore();
-  const notes          = useQuery(api.notes.list, { contactId: id as Id<'contacts'> });
-  const createNote     = useMutation(api.notes.create);
-  const deleteNote     = useMutation(api.notes.remove);
-  const getUploadUrl   = useMutation(api.notes.generateUploadUrl);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const notes = useQuery(api.notes.list, { contactId: id as Id<'contacts'> });
+  const createNote = useMutation(api.notes.create);
+  const deleteNote = useMutation(api.notes.remove);
+  const getUploadUrl = useMutation(api.notes.generateUploadUrl);
 
-  const [text, setText]                     = useState('');
-  const [saving, setSaving]                 = useState(false);
+  const [text, setText] = useState('');
+  const [saving, setSaving] = useState(false);
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
-  const [recordingDuration, setDuration]    = useState(0);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pulseAnim    = useRef(new Animated.Value(1)).current;
+  const [recordingDuration, setDuration] = useState(0);
+  const recorderRef = useRef<import('expo-audio').AudioRecorder | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (recordingState === 'recording') {
       Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, { toValue: 1.3, duration: 600, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1,   duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         ]),
       ).start();
     } else {
@@ -119,23 +131,25 @@ export default function ContactNotesScreen() {
   }, [recordingState, pulseAnim]);
 
   const startRecording = async () => {
-    const { status } = await Audio.requestPermissionsAsync();
+    const { status } = await requestRecordingPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Microphone Access', 'Please allow microphone access in Settings to record voice notes.');
       return;
     }
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS:     true,
-        playsInSilentModeIOS:   true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid:      true,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        shouldPlayInBackground: false,
+        interruptionMode: 'mixWithOthers',
+        shouldRouteThroughEarpiece: false,
       });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY,
-      );
-      recordingRef.current = recording;
+
+      const { AudioRecorder } = await import('expo-audio');
+      const recorder = new AudioRecorder(RecordingPresets.HIGH_QUALITY);
+      await recorder.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
+      recorder.record();
+      recorderRef.current = recorder;
       setRecordingState('recording');
       setDuration(0);
       timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
@@ -145,19 +159,20 @@ export default function ContactNotesScreen() {
   };
 
   const stopRecording = async () => {
-    if (!recordingRef.current || !user) return;
+    if (!recorderRef.current || !user) return;
     clearInterval(timerRef.current!);
     setRecordingState('processing');
 
     try {
-      await recordingRef.current.stopAndUnloadAsync();
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS:     false,
-        playsInSilentModeIOS:   false,
-        staysActiveInBackground: false,
-        shouldDuckAndroid:      false,
+      const recorder = recorderRef.current;
+      await recorder.stop();
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: false,
+        shouldPlayInBackground: false,
+        interruptionMode: 'mixWithOthers',
       });
-      const uri = recordingRef.current.getURI()!;
+      const uri = recorder.uri || '';
       const duration = recordingDuration;
 
       // Upload audio to Convex storage (falls back to local URI in dev builds)
@@ -165,9 +180,9 @@ export default function ContactNotesScreen() {
       try {
         const uploadUrl = await getUploadUrl({});
         const res = await fetch(uploadUrl, {
-          method:  'PUT',
+          method: 'PUT',
           headers: { 'Content-Type': 'audio/m4a' },
-          body:    await (await fetch(uri)).blob(),
+          body: await (await fetch(uri)).blob(),
         });
         const { storageId } = await res.json();
         audioUrl = storageId;
@@ -177,15 +192,15 @@ export default function ContactNotesScreen() {
 
       await createNote({
         contactId: id as Id<'contacts'>,
-        userId:    user._id,
-        content:   `Voice note (${formatDuration(duration)})`,
-        type:      'voice',
+        userId: user._id,
+        content: `Voice note (${formatDuration(duration)})`,
+        type: 'voice',
         audioUrl,
       });
     } catch {
       Alert.alert('Error', 'Could not save voice note.');
     } finally {
-      recordingRef.current = null;
+      recorderRef.current = null;
       setRecordingState('idle');
       setDuration(0);
     }
@@ -197,9 +212,9 @@ export default function ContactNotesScreen() {
     try {
       await createNote({
         contactId: id as Id<'contacts'>,
-        userId:    user._id,
-        content:   text.trim(),
-        type:      'text',
+        userId: user._id,
+        content: text.trim(),
+        type: 'text',
       });
       setText('');
     } catch {

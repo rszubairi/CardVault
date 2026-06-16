@@ -33,16 +33,16 @@ export default function AnimatedSplashScreen({
   onAnimationComplete,
 }: AnimatedSplashScreenProps) {
   /* ── shared values ── */
-  const logoScale    = useSharedValue(0.3);
-  const logoOpacity  = useSharedValue(0);
-  const titleY       = useSharedValue(30);
+  const logoScale = useSharedValue(0.3);
+  const logoOpacity = useSharedValue(0);
+  const titleY = useSharedValue(30);
   const titleOpacity = useSharedValue(0);
-  const taglineY     = useSharedValue(20);
+  const taglineY = useSharedValue(20);
   const taglineOpacity = useSharedValue(0);
-  const scanBarY     = useSharedValue(-20);
+  const scanBarY = useSharedValue(-20);
   const scanBarOpacity = useSharedValue(0);
   const containerOpacity = useSharedValue(1);
-  const glowScale    = useSharedValue(1);
+  const glowScale = useSharedValue(1);
 
   const finishAnimation = useCallback(() => {
     runOnJS(onAnimationComplete)();
@@ -115,7 +115,8 @@ export default function AnimatedSplashScreen({
     containerOpacity.value = withDelay(
       exitDelay,
       withTiming(0, { duration: 500, easing: Easing.out(Easing.ease) }, () => {
-        finishAnimation();
+        'worklet';
+        runOnJS(onAnimationComplete)();
       }),
     );
   }, [isReady]);
@@ -197,7 +198,7 @@ export default function AnimatedSplashScreen({
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: Colors.surface[900],
     justifyContent: 'center',
     alignItems: 'center',

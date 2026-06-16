@@ -1,5 +1,20 @@
 import { internalQuery, mutation, query } from './_generated/server';
 import { v } from 'convex/values';
+import { Id } from './_generated/dataModel';
+
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const getStorageUrl = query({
+  args: { storageId: v.string() },
+  handler: async (ctx, { storageId }) => {
+    return await ctx.storage.getUrl(storageId as Id<'_storage'>);
+  },
+});
 
 export const list = query({
   args: {

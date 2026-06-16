@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,49 +10,102 @@ import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import TextRecognition from '@react-native-ml-kit/text-recognition';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import { Colors } from '../../../src/constants/theme';
 
+type DetectionState = 'scanning' | 'detected' | 'capturing';
+
+const POLL_INTERVAL_MS = 1500;
+const CAPTURE_DELAY_MS = 700;
+const MIN_TEXT_LENGTH  = 15;
+
 export default function ScanScreen() {
-  const router = useRouter();
+  const router    = useRouter();
   const cameraRef = useRef<CameraView>(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const [facing, setFacing] = useState<CameraType>('back');
-  const [flash, setFlash] = useState(false);
-  const [capturing, setCapturing] = useState(false);
+  const [facing, setFacing]             = useState<CameraType>('back');
+  const [flash, setFlash]               = useState(false);
+  const [detection, setDetection]       = useState<DetectionState>('scanning');
+
+  // refs so interval callbacks read current values without stale closures
+  const detectionRef  = useRef<DetectionState>('scanning');
+  const pollingRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const captureTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { hasScansRemaining, showPaywall } = useSubscriptionStore();
 
-  const handleCapture = async () => {
+  const doCapture = useCallback(async () => {
+    if (!cameraRef.current) return;
+
     if (!hasScansRemaining()) {
       showPaywall();
       router.push('/(app)/upgrade');
       return;
     }
 
-    if (!cameraRef.current || capturing) return;
-    setCapturing(true);
+    detectionRef.current = 'capturing';
+    setDetection('capturing');
+    if (pollingRef.current) clearInterval(pollingRef.current);
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.9,
-        base64: false,
-        exif: false,
+        base64:  false,
+        exif:    false,
       });
-
       if (photo) {
-        router.push({
-          pathname: '/(app)/scan/result',
-          params: { imageUri: photo.uri },
-        });
+        router.push({ pathname: '/(app)/scan/result', params: { imageUri: photo.uri } });
       }
     } catch {
       Alert.alert('Error', 'Failed to capture image. Please try again.');
-    } finally {
-      setCapturing(false);
+      detectionRef.current = 'scanning';
+      setDetection('scanning');
     }
+  }, [hasScansRemaining, showPaywall, router]);
+
+  const startPolling = useCallback(() => {
+    pollingRef.current = setInterval(async () => {
+      if (detectionRef.current !== 'scanning') return;
+      if (!cameraRef.current) return;
+
+      try {
+        const preview = await cameraRef.current.takePictureAsync({
+          quality: 0.15,
+          base64:  false,
+          exif:    false,
+        });
+        if (!preview) return;
+
+        const result  = await TextRecognition.recognize(preview.uri);
+        const hasCard = (result.text ?? '').trim().length >= MIN_TEXT_LENGTH;
+
+        if (hasCard && detectionRef.current === 'scanning') {
+          detectionRef.current = 'detected';
+          setDetection('detected');
+          captureTimer.current = setTimeout(doCapture, CAPTURE_DELAY_MS);
+        }
+      } catch {
+        // silently ignore per-frame errors
+      }
+    }, POLL_INTERVAL_MS);
+  }, [doCapture]);
+
+  useEffect(() => {
+    if (permission?.granted) startPolling();
+    return () => {
+      if (pollingRef.current)   clearInterval(pollingRef.current);
+      if (captureTimer.current) clearTimeout(captureTimer.current);
+    };
+  }, [permission?.granted, startPolling]);
+
+  const handleManualCapture = () => {
+    if (detectionRef.current === 'capturing') return;
+    if (captureTimer.current) clearTimeout(captureTimer.current);
+    doCapture();
   };
 
+  // ── Permission loading ───────────────────────────────────────────────────
   if (!permission) {
     return (
       <View className="flex-1 bg-surface-900 items-center justify-center">
@@ -81,6 +134,23 @@ export default function ScanScreen() {
     );
   }
 
+  // ── Detection state helpers ──────────────────────────────────────────────
+  const frameColor =
+    detection === 'detected'  ? 'border-emerald-400' :
+    detection === 'capturing' ? 'border-primary-500' :
+    'border-white/90';
+
+  const statusLabel =
+    detection === 'detected'  ? 'Card detected — hold steady...' :
+    detection === 'capturing' ? 'Capturing...' :
+    'Align business card within the frame';
+
+  const statusColor =
+    detection === 'detected'  ? 'text-emerald-400' :
+    detection === 'capturing' ? 'text-primary-400' :
+    'text-white/70';
+
+  // ── UI ───────────────────────────────────────────────────────────────────
   return (
     <View className="flex-1 bg-black">
       <CameraView
@@ -108,19 +178,36 @@ export default function ScanScreen() {
         {/* Viewfinder */}
         <View className="flex-1 items-center justify-center">
           <View className="w-80 h-52 relative">
-            {/* Corner brackets */}
+            {/* Corner brackets — colour changes on detection */}
             {[
-              'top-0 left-0 border-t-2 border-l-2',
-              'top-0 right-0 border-t-2 border-r-2',
-              'bottom-0 left-0 border-b-2 border-l-2',
-              'bottom-0 right-0 border-b-2 border-r-2',
+              `top-0 left-0 border-t-2 border-l-2`,
+              `top-0 right-0 border-t-2 border-r-2`,
+              `bottom-0 left-0 border-b-2 border-l-2`,
+              `bottom-0 right-0 border-b-2 border-r-2`,
             ].map((cls, i) => (
-              <View key={i} className={`absolute w-8 h-8 border-white/90 rounded-sm ${cls}`} />
+              <View
+                key={i}
+                className={`absolute w-8 h-8 rounded-sm ${cls} ${frameColor}`}
+              />
             ))}
+
+            {/* Detected flash overlay */}
+            {detection === 'detected' && (
+              <View className="absolute inset-0 bg-emerald-400/10 rounded-lg border border-emerald-400/30" />
+            )}
           </View>
-          <Text className="text-white/70 text-sm mt-5">
-            Align business card within the frame
-          </Text>
+
+          <Text className={`text-sm mt-5 ${statusColor}`}>{statusLabel}</Text>
+
+          {/* Auto-detect badge */}
+          <View className="flex-row items-center mt-3 bg-black/50 px-3 py-1.5 rounded-full">
+            <View
+              className={`w-2 h-2 rounded-full mr-2 ${
+                detection === 'scanning' ? 'bg-amber-400' : 'bg-emerald-400'
+              }`}
+            />
+            <Text className="text-white/70 text-xs">Auto-detect active</Text>
+          </View>
         </View>
 
         {/* Bottom Controls */}
@@ -133,14 +220,19 @@ export default function ScanScreen() {
               <Ionicons name="close" size={26} color="#fff" />
             </TouchableOpacity>
 
-            {/* Shutter */}
+            {/* Manual shutter */}
             <TouchableOpacity
-              onPress={handleCapture}
-              disabled={capturing}
+              onPress={handleManualCapture}
+              disabled={detection === 'capturing'}
               className="w-20 h-20 rounded-full border-4 border-white items-center justify-center"
-              style={{ backgroundColor: capturing ? '#6366F1' : 'rgba(255,255,255,0.15)' }}
+              style={{
+                backgroundColor:
+                  detection === 'capturing' ? '#6366F1' :
+                  detection === 'detected'  ? 'rgba(52,211,153,0.25)' :
+                  'rgba(255,255,255,0.15)',
+              }}
             >
-              {capturing ? (
+              {detection === 'capturing' ? (
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <View className="w-14 h-14 bg-white rounded-full" />
@@ -154,6 +246,10 @@ export default function ScanScreen() {
               <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
             </TouchableOpacity>
           </View>
+
+          <Text className="text-white/40 text-xs text-center mt-3">
+            Card is detected automatically · tap shutter to capture manually
+          </Text>
         </SafeAreaView>
       </CameraView>
     </View>

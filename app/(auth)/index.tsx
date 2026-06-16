@@ -23,24 +23,26 @@ import {
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_IOS_CLIENT_ID     = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS     ?? '';
+const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ?? '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID ?? '';
-const GOOGLE_WEB_CLIENT_ID     = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB     ?? '';
-const LINKEDIN_CLIENT_ID       = process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_ID       ?? '';
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '';
+const LINKEDIN_CLIENT_ID = process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_ID ?? '';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { setUser, setToken } = useAuthStore();
   const getOrCreateUser = useMutation(api.users.getOrCreate);
-  const [googleLoading,   setGoogleLoading]   = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [linkedinLoading, setLinkedinLoading] = useState(false);
+
+  console.log(AuthSession.makeRedirectUri({ scheme: 'cardvault' }));
 
   // ─── Google auth ────────────────────────────────────────────────────────────
   const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    iosClientId:     GOOGLE_IOS_CLIENT_ID,
+    iosClientId: GOOGLE_IOS_CLIENT_ID,
     androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    webClientId:     GOOGLE_WEB_CLIENT_ID,
-    scopes:          ['openid', 'profile', 'email'],
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    scopes: ['openid', 'profile', 'email'],
   });
 
   const handleGoogleSignIn = async () => {
@@ -54,9 +56,9 @@ export default function LoginScreen() {
       if (!profile) throw new Error('Failed to fetch Google profile');
 
       const userId = await getOrCreateUser({
-        name:         profile.name,
-        email:        profile.email,
-        externalId:   profile.sub,
+        name: profile.name,
+        email: profile.email,
+        externalId: profile.sub,
         authProvider: 'google',
         profilePhoto: profile.picture,
       });
@@ -90,7 +92,7 @@ export default function LoginScreen() {
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
       if (result.type !== 'success') { setLinkedinLoading(false); return; }
 
-      const url  = new URL(result.url);
+      const url = new URL(result.url);
       const code = url.searchParams.get('code');
       if (!code) throw new Error('No authorization code returned');
 
@@ -101,9 +103,9 @@ export default function LoginScreen() {
       const mockProfile = { sub: code, name: 'LinkedIn User', email: 'user@linkedin.com' };
 
       const userId = await getOrCreateUser({
-        name:         mockProfile.name,
-        email:        mockProfile.email,
-        externalId:   mockProfile.sub,
+        name: mockProfile.name,
+        email: mockProfile.email,
+        externalId: mockProfile.sub,
         authProvider: 'linkedin',
       });
 
@@ -121,11 +123,23 @@ export default function LoginScreen() {
 
   // ─── Dev bypass (remove before production) ───────────────────────────────────
   const handleDevLogin = async () => {
-    const mockUser = { _id: 'dev_user_123' as any, name: 'Dev User', email: 'dev@cardvault.app' };
-    await storeSession('dev_token_123', mockUser);
-    setToken('dev_token_123');
-    setUser(mockUser);
-    router.replace('/(app)/(tabs)/');
+    try {
+      const userId = await getOrCreateUser({
+        name: 'Rszubairi (Dev)',
+        email: 'r.s.zubairi@gmail.com',
+        externalId: 'dev_user_github',
+        authProvider: 'google',
+        profilePhoto: undefined,
+      });
+
+      const devUser = { _id: userId, name: 'Rszubairi (Dev)', email: 'r.s.zubairi@gmail.com' };
+      await storeSession('dev_token_123', devUser);
+      setToken('dev_token_123');
+      setUser(devUser as any);
+      router.replace('/(app)/(tabs)/');
+    } catch (e: any) {
+      Alert.alert('Dev Login Failed', e.message ?? 'Could not create dev user.');
+    }
   };
 
   return (
@@ -144,10 +158,10 @@ export default function LoginScreen() {
       {/* Feature list */}
       <View className="gap-y-3">
         {[
-          { icon: 'scan-outline',     label: 'Scan cards in seconds with AI OCR' },
-          { icon: 'flash-outline',    label: 'Auto-extract name, email, phone, LinkedIn' },
-          { icon: 'people-outline',   label: 'Team CRM for conferences and events' },
-          { icon: 'sync-outline',     label: 'Real-time sync across all your devices' },
+          { icon: 'scan-outline', label: 'Scan cards in seconds with AI OCR' },
+          { icon: 'flash-outline', label: 'Auto-extract name, email, phone, LinkedIn' },
+          { icon: 'people-outline', label: 'Team CRM for conferences and events' },
+          { icon: 'sync-outline', label: 'Real-time sync across all your devices' },
         ].map(({ icon, label }) => (
           <View
             key={label}
