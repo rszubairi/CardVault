@@ -27,6 +27,13 @@ Notifications.setNotificationHandler({
   }),
 });
 
+if (Platform.OS !== 'web') {
+  Promise.all([
+    import('@react-native-firebase/crashlytics').then(m => m.default().setCrashlyticsCollectionEnabled(!__DEV__)),
+    import('@react-native-firebase/analytics').then(m => m.default().setAnalyticsCollectionEnabled(!__DEV__)),
+  ]);
+}
+
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? '');
 const queryClient = new QueryClient({
   defaultOptions: {

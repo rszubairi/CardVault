@@ -77,7 +77,9 @@
           "faceIDPermission": "CardVault uses Face ID to protect your contacts."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics"
     ],
     "experiments": {
       "typedRoutes": true

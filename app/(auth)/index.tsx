@@ -9,7 +9,6 @@ import {
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -17,16 +16,16 @@ import { useAuthStore } from '../../src/stores/authStore';
 import {
   storeSession,
   fetchGoogleProfile,
-  exchangeLinkedInCode,
-  fetchLinkedInProfile,
+  exchangeGoogleCode,
 } from '../../src/lib/auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_IOS_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS ?? '';
 const GOOGLE_ANDROID_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID ?? '';
 const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '';
 const LINKEDIN_CLIENT_ID = process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_ID ?? '';
+
+const RELEASE_REDIRECT_URI = 'https://card-vault-bt7i.vercel.app/auth/callback';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -38,12 +37,24 @@ export default function LoginScreen() {
   console.log(AuthSession.makeRedirectUri({ scheme: 'cardvault' }));
 
   // ─── Google auth ────────────────────────────────────────────────────────────
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    scopes: ['openid', 'profile', 'email'],
-  });
+  const redirectUri = __DEV__
+    ? AuthSession.makeRedirectUri({ scheme: 'cardvault' })
+    : RELEASE_REDIRECT_URI;
+
+  const clientId = __DEV__ ? GOOGLE_ANDROID_CLIENT_ID : GOOGLE_WEB_CLIENT_ID;
+
+  const discovery = AuthSession.useAutoDiscovery('https://accounts.google.com');
+
+  const [request, , promptGoogleAsync] = AuthSession.useAuthRequest(
+    {
+      clientId,
+      redirectUri,
+      scopes: ['openid', 'profile', 'email'],
+      responseType: AuthSession.ResponseType.Code,
+      usePKCE: true,
+    },
+    discovery,
+  );
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
@@ -51,7 +62,16 @@ export default function LoginScreen() {
       const result = await promptGoogleAsync();
       if (result.type !== 'success') { setGoogleLoading(false); return; }
 
-      const accessToken = result.authentication?.accessToken ?? '';
+      const { code } = result.params;
+      const tokens = await exchangeGoogleCode(
+        code,
+        request!.codeVerifier!,
+        redirectUri,
+        clientId,
+      );
+      if (!tokens) throw new Error('Failed to exchange Google code');
+
+      const accessToken = tokens.access_token;
       const profile = await fetchGoogleProfile(accessToken);
       if (!profile) throw new Error('Failed to fetch Google profile');
 
