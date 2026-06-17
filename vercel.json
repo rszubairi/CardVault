@@ -1,4 +1,4 @@
 {
   "framework": "nextjs",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- website/"
+  "ignoreCommand": "exit 1"
 }
