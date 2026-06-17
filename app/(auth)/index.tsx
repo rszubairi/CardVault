@@ -20,21 +20,37 @@ const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '';
 const LINKEDIN_CLIENT_ID = process.env.EXPO_PUBLIC_LINKEDIN_CLIENT_ID ?? '';
 
 /**
+ * Android redirect URI for Google's built-in Chrome Custom Tabs support.
+ * This format is auto-accepted by Google for Android client IDs - no need to
+ * register it in the Google Cloud Console.
+ * Format: com.googleusercontent.apps.<ANDROID_CLIENT_ID>:/oauth2redirect/google
+ */
+function getAndroidRedirectUri(): string {
+  const clientId = GOOGLE_ANDROID_CLIENT_ID;
+  if (!clientId) return '';
+  return `com.googleusercontent.apps.${clientId.replace('.apps.googleusercontent.com', '')}:/oauth2redirect/google`;
+}
+
+/**
  * Exchange an authorization code for an access token using the Google token endpoint.
- * Uses the Web Client ID (type: "web") which supports server-side token exchanges.
+ * On Android we use the Android client ID with client_secret='' (no secret needed for
+ * installed/bundled apps). On iOS/web we use the web client ID.
  */
 async function exchangeCodeForToken(
   code: string,
   codeVerifier: string,
   redirectUri: string,
+  isAndroid: boolean,
 ): Promise<string | null> {
   try {
+    const clientId = isAndroid ? GOOGLE_ANDROID_CLIENT_ID : GOOGLE_WEB_CLIENT_ID;
     const res = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id: GOOGLE_WEB_CLIENT_ID,
+        client_id: clientId,
+        client_secret: '',
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
         code_verifier: codeVerifier,
@@ -93,18 +109,26 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [linkedinLoading, setLinkedinLoading] = useState(false);
 
+  const isAndroid = Platform.OS === 'android';
+
   /**
    * Google Sign-In for Android:
    * Uses the authorization code flow with PKCE via WebBrowser.openAuthSessionAsync.
-   * The redirect URI is cardvault://auth which Chrome Custom Tabs closes after redirect
-   * and the promise resolves with the URL containing the code.
+   * Uses the Android client ID's built-in redirect format that Google auto-accepts:
+   *   com.googleusercontent.apps.<CLIENT_ID>:/oauth2redirect/google
+   *
+   * The Android client ID is used for BOTH the auth request AND the token exchange,
+   * with an empty client_secret (standard for installed/bundled app clients).
    */
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     try {
       const codeVerifier = Crypto.randomUUID() + Crypto.randomUUID();
       const codeChallenge = await generateCodeChallenge(codeVerifier);
-      const redirectUri = Linking.createURL('auth');
+      const redirectUri = getAndroidRedirectUri();
+      if (!redirectUri || !GOOGLE_ANDROID_CLIENT_ID) {
+        throw new Error('Google Android Client ID not configured. Check EXPO_PUBLIC_GOOGLE_CLIENT_ID_ANDROID in your .env file.');
+      }
 
       const authUrl =
         'https://accounts.google.com/o/oauth2/v2/auth' +
@@ -114,8 +138,7 @@ export default function LoginScreen() {
         `&scope=${encodeURIComponent('openid profile email')}` +
         `&state=${encodeURIComponent(Crypto.randomUUID())}` +
         `&code_challenge=${encodeURIComponent(codeChallenge)}` +
-        '&code_challenge_method=S256' +
-        '&access_type=offline';
+        '&code_challenge_method=S256';
 
       const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri);
 
@@ -134,7 +157,7 @@ export default function LoginScreen() {
       }
 
       // Exchange the authorization code for an access token
-      const accessToken = await exchangeCodeForToken(code, codeVerifier, redirectUri);
+      const accessToken = await exchangeCodeForToken(code, codeVerifier, redirectUri, true);
       if (!accessToken) {
         Alert.alert('Sign In Failed', 'Could not exchange authorization code for token.');
         setGoogleLoading(false);
@@ -253,8 +276,6 @@ export default function LoginScreen() {
     }
   };
 
-  // Detect platform for the correct Google flow
-  const isAndroid = Platform.OS === 'android';
   const handleGooglePress = isAndroid ? handleGoogleSignIn : handleGoogleSignInNative;
 
   return (
@@ -348,7 +369,6 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
  * in React Native Hermes engine).
  */
 function base64URLEncode(hex: string): string {
-  // Base64 alphabet
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
