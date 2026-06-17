@@ -34,6 +34,21 @@
           "autoVerify": true,
           "data": [
             {
+              "scheme": "com.googleusercontent.apps.295671462958-isg76jc0rjt3tl40n3r5l8cq46ke4r9k",
+              "host": "oauth2redirect",
+              "pathPrefix": "/google"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
               "scheme": "cardvault",
               "host": "auth"
             }
@@ -108,6 +123,7 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-google-signin/google-signin",
       "expo-secure-store",
       [
         "expo-splash-screen",
@@ -138,7 +154,8 @@
       ],
       "expo-audio",
       "@react-native-firebase/app",
-      "@react-native-firebase/crashlytics"
+      "@react-native-firebase/crashlytics",
+      "@react-native-firebase/auth"
     ],
     "experiments": {
       "typedRoutes": true

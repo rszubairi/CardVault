@@ -105,6 +105,30 @@ p{color:#94A3B8;}a{color:#6366F1;}</style></head>
   }),
 });
 
+// ─── Google OAuth callback ────────────────────────────────────────────────────
+// Google redirects here after user signs in. We pass the code back to the app
+// via a deep-link so the client can complete the PKCE exchange it started.
+
+http.route({
+  path:   '/auth/google',
+  method: 'GET',
+  handler: httpAction(async (_ctx, req) => {
+    const url    = new URL(req.url);
+    const code   = url.searchParams.get('code');
+    const state  = url.searchParams.get('state');
+    const error  = url.searchParams.get('error');
+
+    if (error || !code) {
+      const appUrl = `cardvault://auth?error=${encodeURIComponent(error ?? 'no_code')}`;
+      return new Response(null, { status: 302, headers: { Location: appUrl } });
+    }
+
+    const params = new URLSearchParams({ code, ...(state ? { state } : {}) });
+    const appUrl = `cardvault://auth?${params.toString()}`;
+    return new Response(null, { status: 302, headers: { Location: appUrl } });
+  }),
+});
+
 // ─── Admin API ────────────────────────────────────────────────────────────────
 
 function isAdminAuthorized(req: Request): boolean {

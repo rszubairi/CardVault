@@ -26,7 +26,7 @@ export default function ProfileSetupScreen() {
       await updateProfile({
         userId: user._id as any,
         phone: phone.trim() || undefined,
-        linkedinUrl: linkedin.trim() || undefined,
+        linkedinUrl: linkedin.trim() ? `https://www.linkedin.com/in/${linkedin.trim()}` : undefined,
       });
       router.replace('/(app)/(tabs)');
     } catch {
@@ -41,8 +41,8 @@ export default function ProfileSetupScreen() {
       className="flex-1 bg-surface-900"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
-        <View className="flex-1 px-6 py-16 justify-between">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <View className="px-6 py-16 justify-between">
           {/* Header */}
           <View className="items-center mt-10 mb-10">
             <View className="w-16 h-16 bg-primary-500 rounded-2xl items-center justify-center mb-5">
@@ -55,7 +55,7 @@ export default function ProfileSetupScreen() {
           </View>
 
           {/* Fields */}
-          <View className="gap-y-4 flex-1">
+          <View className="gap-y-4">
             <View>
               <Text className="text-slate-400 text-sm mb-2 ml-1">Email</Text>
               <View className="flex-row items-center bg-surface-800 rounded-xl px-4 py-3 border border-surface-700">
@@ -86,17 +86,19 @@ export default function ProfileSetupScreen() {
             </View>
 
             <View>
-              <Text className="text-slate-400 text-sm mb-2 ml-1">LinkedIn Profile URL</Text>
+              <Text className="text-slate-400 text-sm mb-2 ml-1">LinkedIn Profile</Text>
               <View className="flex-row items-center bg-surface-800 rounded-xl px-4 py-3 border border-surface-700">
                 <Ionicons name="logo-linkedin" size={18} color="#0A66C2" />
+                <Text className="text-slate-500 ml-3 text-base">linkedin.com/in/</Text>
                 <TextInput
                   value={linkedin}
                   onChangeText={setLinkedin}
-                  placeholder="https://linkedin.com/in/yourname"
+                  placeholder="yourname"
                   placeholderTextColor="#475569"
                   autoCapitalize="none"
+                  autoCorrect={false}
                   keyboardType="url"
-                  className="flex-1 text-slate-200 ml-3 text-base"
+                  className="flex-1 text-slate-200 text-base"
                   style={{ color: '#e2e8f0' }}
                 />
               </View>

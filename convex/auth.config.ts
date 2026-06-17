@@ -8,7 +8,7 @@ export default {
     providers: [
         {
             domain: "https://accounts.google.com",
-            applicationID: process.env.GOOGLE_WEB_CLIENT_ID ?? "295671462958-htienc7pqh7t5lv1p282ol5oiarik7ec.apps.googleusercontent.com",
+            applicationID: process.env.GOOGLE_WEB_CLIENT_ID ?? "1055063850419-74q1iic0psd4cgu94gg0fc95tfpc7ngn.apps.googleusercontent.com",
         },
     ],
 };
