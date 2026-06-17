@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1055063850419",
+    "project_id": "card-vault-android",
+    "storage_bucket": "card-vault-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055063850419:android:516fd4d5628ce199471fc6",
+        "android_client_info": {
+          "package_name": "com.cardvault.android"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAIRY7tWr3gGkaqQZNwsLzmqLMvMLqVDlg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

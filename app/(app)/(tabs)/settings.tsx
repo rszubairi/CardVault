@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,18 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import { useSecurityStore } from '../../../src/stores/securityStore';
+import { storeSession } from '../../../src/lib/auth';
 import {
   isBiometricAvailable,
   authenticate,
@@ -73,13 +78,38 @@ const LOCK_TIMEOUT_OPTIONS = [
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuthStore();
+  const { user, token, signOut, setUser } = useAuthStore();
   const { plan, scanCount, scanLimit } = useSubscriptionStore();
   const { biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout } = useSecurityStore();
+  const updateProfile = useMutation(api.users.updateProfile);
   const [darkMode, setDarkMode] = React.useState(true);
   const [notifications, setNotifications] = React.useState(true);
   const [biometricType, setBiometricType] = React.useState<BiometricType>('Biometric' as BiometricType);
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
+
+  const [phone, setPhone] = React.useState(user?.phone ?? '');
+  const [linkedinUrl, setLinkedinUrl] = React.useState(user?.linkedinUrl ?? '');
+  const [profileSaving, setProfileSaving] = React.useState(false);
+
+  const handleSaveProfile = async () => {
+    if (!user?._id) return;
+    setProfileSaving(true);
+    try {
+      await updateProfile({
+        userId: user._id,
+        phone: phone.trim() || undefined,
+        linkedinUrl: linkedinUrl.trim() || undefined,
+      });
+      const updated = { ...user, phone: phone.trim() || undefined, linkedinUrl: linkedinUrl.trim() || undefined };
+      setUser(updated as any);
+      await storeSession(token ?? '', updated);
+      Alert.alert('Saved', 'Profile updated successfully.');
+    } catch {
+      Alert.alert('Error', 'Could not save profile. Please try again.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   React.useEffect(() => {
     isBiometricAvailable().then((available) => {
@@ -112,7 +142,7 @@ export default function SettingsScreen() {
       `Current: ${current}\n\nLock the app after being in background for:`,
       [
         ...LOCK_TIMEOUT_OPTIONS.map(({ label, seconds }) => ({
-          text: label + (seconds === lockTimeout ? ' ✓' : ''),
+          text: label + (seconds === lockTimeout ? ' âœ“' : ''),
           onPress: async () => {
             setLockTimeout(seconds);
             await saveLockTimeout(seconds).catch(() => {});
@@ -163,6 +193,66 @@ export default function SettingsScreen() {
               <Text className="text-slate-400 text-sm mt-0.5">{user?.email ?? ''}</Text>
             </View>
             <Badge label={planLabel} variant={plan === 'free' ? 'neutral' : 'primary'} />
+          </Card>
+        </View>
+
+        {/* Profile Details */}
+        <View className="mb-6 px-5">
+          <Text className="text-slate-500 text-xs uppercase tracking-widest mb-3">
+            Profile
+          </Text>
+          <Card variant="outlined" className="p-4 gap-y-4">
+            <View>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">Email</Text>
+              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                <Ionicons name="mail-outline" size={16} color="#6366F1" />
+                <Text className="text-slate-400 ml-2 text-sm flex-1">{user?.email}</Text>
+              </View>
+            </View>
+
+            <View>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">Phone Number</Text>
+              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                <Ionicons name="call-outline" size={16} color="#6366F1" />
+                <TextInput
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="Add phone number"
+                  placeholderTextColor="#475569"
+                  keyboardType="phone-pad"
+                  className="flex-1 ml-2 text-sm"
+                  style={{ color: '#e2e8f0' }}
+                />
+              </View>
+            </View>
+
+            <View>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">LinkedIn Profile</Text>
+              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                <Ionicons name="logo-linkedin" size={16} color="#0A66C2" />
+                <TextInput
+                  value={linkedinUrl}
+                  onChangeText={setLinkedinUrl}
+                  placeholder="https://linkedin.com/in/yourname"
+                  placeholderTextColor="#475569"
+                  autoCapitalize="none"
+                  keyboardType="url"
+                  className="flex-1 ml-2 text-sm"
+                  style={{ color: '#e2e8f0' }}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleSaveProfile}
+              disabled={profileSaving}
+              className="bg-primary-500 rounded-xl py-3 items-center mt-1"
+            >
+              {profileSaving
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text className="text-white text-sm font-semibold">Save Profile</Text>
+              }
+            </TouchableOpacity>
           </Card>
         </View>
 
@@ -287,3 +377,4 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
+

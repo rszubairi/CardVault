@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -105,7 +105,7 @@ export default function ScanScreen() {
     doCapture();
   };
 
-  // ── Permission loading ───────────────────────────────────────────────────
+  // â”€â”€ Permission loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!permission) {
     return (
       <View className="flex-1 bg-surface-900 items-center justify-center">
@@ -134,14 +134,14 @@ export default function ScanScreen() {
     );
   }
 
-  // ── Detection state helpers ──────────────────────────────────────────────
+  // â”€â”€ Detection state helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const frameColor =
     detection === 'detected'  ? 'border-emerald-400' :
     detection === 'capturing' ? 'border-primary-500' :
     'border-white/90';
 
   const statusLabel =
-    detection === 'detected'  ? 'Card detected — hold steady...' :
+    detection === 'detected'  ? 'Card detected â€” hold steady...' :
     detection === 'capturing' ? 'Capturing...' :
     'Align business card within the frame';
 
@@ -150,7 +150,7 @@ export default function ScanScreen() {
     detection === 'capturing' ? 'text-primary-400' :
     'text-white/70';
 
-  // ── UI ───────────────────────────────────────────────────────────────────
+  // â”€â”€ UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <View className="flex-1 bg-black">
       <CameraView
@@ -178,7 +178,7 @@ export default function ScanScreen() {
         {/* Viewfinder */}
         <View className="flex-1 items-center justify-center">
           <View className="w-80 h-52 relative">
-            {/* Corner brackets — colour changes on detection */}
+            {/* Corner brackets â€” colour changes on detection */}
             {[
               `top-0 left-0 border-t-2 border-l-2`,
               `top-0 right-0 border-t-2 border-r-2`,
@@ -248,10 +248,11 @@ export default function ScanScreen() {
           </View>
 
           <Text className="text-white/40 text-xs text-center mt-3">
-            Card is detected automatically · tap shutter to capture manually
+            Card is detected automatically Â· tap shutter to capture manually
           </Text>
         </SafeAreaView>
       </CameraView>
     </View>
   );
 }
+

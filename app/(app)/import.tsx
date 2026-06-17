@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -168,7 +168,7 @@ export default function ImportScreen() {
               <Text className="text-amber-400 text-sm font-semibold">{result.skipped}</Text>
             </Card>
           </View>
-          <Button label="View Contacts" fullWidth className="mt-8" onPress={() => router.replace('/(app)/(tabs)/contacts')} />
+          <Button label="View Contacts" fullWidth className="mt-8" onPress={() => router.replace('/(app)/(tabs)contacts')} />
           <Button label="Import Another" variant="ghost" fullWidth className="mt-2" onPress={reset} />
         </View>
       </SafeAreaView>
@@ -207,7 +207,7 @@ export default function ImportScreen() {
           <Card className="p-6 items-center mb-6">
             <ActivityIndicator color="#6366F1" size="large" />
             <Text className="text-slate-300 text-sm mt-3">
-              Importing contacts… {progress}%
+              Importing contactsâ€¦ {progress}%
             </Text>
             <View className="w-full bg-surface-700 rounded-full h-2 mt-4">
               <View
@@ -222,7 +222,7 @@ export default function ImportScreen() {
         {state === 'parsing' && (
           <Card className="p-6 items-center mb-6">
             <ActivityIndicator color="#6366F1" size="large" />
-            <Text className="text-slate-300 text-sm mt-3">Reading file…</Text>
+            <Text className="text-slate-300 text-sm mt-3">Reading fileâ€¦</Text>
           </Card>
         )}
 
@@ -230,7 +230,7 @@ export default function ImportScreen() {
         {preview && state === 'idle' && (
           <Card className="p-4 mb-6">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-slate-300 text-sm font-semibold">Preview — {fileName}</Text>
+              <Text className="text-slate-300 text-sm font-semibold">Preview â€” {fileName}</Text>
               <Text className="text-primary-400 text-sm">{preview.length} contacts</Text>
             </View>
             {preview.slice(0, 5).map((c, i) => (
@@ -240,14 +240,14 @@ export default function ImportScreen() {
                 </Text>
                 {(c.company || c.email) && (
                   <Text className="text-slate-500 text-xs mt-0.5">
-                    {[c.company, c.email].filter(Boolean).join(' · ')}
+                    {[c.company, c.email].filter(Boolean).join(' Â· ')}
                   </Text>
                 )}
               </View>
             ))}
             {preview.length > 5 && (
               <Text className="text-slate-500 text-xs mt-2 text-center">
-                +{preview.length - 5} more…
+                +{preview.length - 5} moreâ€¦
               </Text>
             )}
           </Card>
@@ -272,7 +272,7 @@ export default function ImportScreen() {
           </>
         ) : (
           <Button
-            label={state === 'picking' ? 'Opening…' : 'Choose File'}
+            label={state === 'picking' ? 'Openingâ€¦' : 'Choose File'}
             fullWidth
             loading={state === 'picking' || state === 'parsing'}
             onPress={pickFile}
@@ -282,3 +282,4 @@ export default function ImportScreen() {
     </SafeAreaView>
   );
 }
+

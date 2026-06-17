@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -82,7 +82,7 @@ export default function UpgradeScreen() {
       setStatus('checkout');
       await WebBrowser.openAuthSessionAsync(url, 'cardvault://');
 
-      // Browser closed — give Stripe webhook time to fire then re-check
+      // Browser closed â€” give Stripe webhook time to fire then re-check
       setStatus('verifying');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Could not start checkout.';
@@ -146,7 +146,7 @@ export default function UpgradeScreen() {
         {status === 'verifying' && (
           <Card className="p-6 items-center mb-6">
             <ActivityIndicator color="#6366F1" size="large" />
-            <Text className="text-slate-300 text-sm mt-3">Verifying your subscription…</Text>
+            <Text className="text-slate-300 text-sm mt-3">Verifying your subscriptionâ€¦</Text>
             <Text className="text-slate-500 text-xs mt-1">This may take a moment.</Text>
           </Card>
         )}
@@ -176,10 +176,10 @@ export default function UpgradeScreen() {
           <Button
             label={
               status === 'creating' && activePlan === 'personal_pro'
-                ? 'Creating checkout…'
+                ? 'Creating checkoutâ€¦'
                 : status === 'checkout' && activePlan === 'personal_pro'
                 ? 'Complete payment in browser'
-                : 'Upgrade to Pro — $10/year'
+                : 'Upgrade to Pro â€” $10/year'
             }
             fullWidth
             loading={isLoading && activePlan === 'personal_pro'}
@@ -209,7 +209,7 @@ export default function UpgradeScreen() {
           <Button
             label={
               status === 'creating' && activePlan === 'enterprise'
-                ? 'Creating checkout…'
+                ? 'Creating checkoutâ€¦'
                 : 'Start Enterprise Trial'
             }
             variant="secondary"
@@ -228,3 +228,4 @@ export default function UpgradeScreen() {
     </SafeAreaView>
   );
 }
+

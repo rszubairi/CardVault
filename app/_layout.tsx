@@ -1,4 +1,4 @@
-import '../global.css';
+﻿import '../global.css';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
@@ -65,7 +65,7 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
       .then(([session, seen]) => {
         if (seen !== '1' && !navigated.current) {
           navigated.current = true;
-          router.replace('/(onboarding)/');
+          router.replace('/(onboarding)' as any);
         }
 
         if (session) {
@@ -132,6 +132,7 @@ export default function RootLayout() {
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(onboarding)" />
               <Stack.Screen name="(auth)" />
+              <Stack.Screen name="auth" />
               <Stack.Screen name="(app)" />
               <Stack.Screen name="+not-found" />
             </Stack>
@@ -141,4 +142,5 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
 

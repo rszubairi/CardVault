@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -129,7 +129,7 @@ export default function OrgScreen() {
           </Card>
           <Card className="flex-1 p-4 items-center">
             <Text className="text-slate-50 text-2xl font-bold">
-              {duplicates ? duplicates.length : '–'}
+              {duplicates ? duplicates.length : 'â€“'}
             </Text>
             <Text className="text-slate-400 text-xs mt-1">Duplicates</Text>
           </Card>
@@ -206,7 +206,7 @@ export default function OrgScreen() {
                         }
                         className="bg-surface-700 px-2.5 py-1 rounded-full"
                       >
-                        <Text className="text-slate-400 text-xs">→ {ROLE_LABELS[r]}</Text>
+                        <Text className="text-slate-400 text-xs">â†’ {ROLE_LABELS[r]}</Text>
                       </TouchableOpacity>
                     ))}
                   <TouchableOpacity
@@ -233,3 +233,4 @@ export default function OrgScreen() {
     </SafeAreaView>
   );
 }
+

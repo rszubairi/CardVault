@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -136,7 +136,7 @@ export default function FollowUpsScreen() {
         {overdue.length > 0 && (
           <>
             <Text className="text-red-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              Overdue · {overdue.length}
+              Overdue Â· {overdue.length}
             </Text>
             {overdue.map((f) => (
               <FollowUpCard key={f._id} contact={f} />
@@ -147,7 +147,7 @@ export default function FollowUpsScreen() {
         {upcoming.length > 0 && (
           <>
             <Text className={`text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3 ${overdue.length ? 'mt-4' : ''}`}>
-              Upcoming · {upcoming.length}
+              Upcoming Â· {upcoming.length}
             </Text>
             {upcoming.map((f) => (
               <FollowUpCard key={f._id} contact={f} />
@@ -158,3 +158,4 @@ export default function FollowUpsScreen() {
     </SafeAreaView>
   );
 }
+

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   View,
   Text,
@@ -17,8 +17,8 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 
 const QUICK_ACTIONS = [
-  { icon: 'scan',       label: 'Scan Card',    href: '/(app)/(tabs)/scan',     color: '#6366F1' },
-  { icon: 'search',     label: 'Search',        href: '/(app)/(tabs)/contacts', color: '#10B981' },
+  { icon: 'scan',       label: 'Scan Card',    href: '/(app)/(tabs)scan',     color: '#6366F1' },
+  { icon: 'search',     label: 'Search',        href: '/(app)/(tabs)contacts', color: '#10B981' },
   { icon: 'calendar',   label: 'Events',        href: '/(app)/events',          color: '#F59E0B' },
   { icon: 'person-add', label: 'Add Contact',   href: '/(app)/contact/new',     color: '#3B82F6' },
 ] as const;
@@ -85,7 +85,7 @@ export default function DashboardScreen() {
           </View>
           <TouchableOpacity
             className="w-10 h-10 bg-surface-800 rounded-full items-center justify-center"
-            onPress={() => router.push('/(app)/(tabs)/settings')}
+            onPress={() => router.push('/(app)/(tabs)settings')}
           >
             <Ionicons name="person-outline" size={20} color="#94A3B8" />
           </TouchableOpacity>
@@ -103,7 +103,7 @@ export default function DashboardScreen() {
                 {scanCount} / {scanLimit} free scans used
               </Text>
               <Text className="text-slate-400 text-xs mt-0.5">
-                Upgrade to Pro for unlimited scanning →
+                Upgrade to Pro for unlimited scanning â†’
               </Text>
             </View>
           </TouchableOpacity>
@@ -159,7 +159,7 @@ export default function DashboardScreen() {
             <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest">
               Recent Contacts
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/contacts')}>
+            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)contacts')}>
               <Text className="text-primary-400 text-sm">See all</Text>
             </TouchableOpacity>
           </View>
@@ -178,7 +178,7 @@ export default function DashboardScreen() {
               </Text>
               <TouchableOpacity
                 className="mt-4 bg-primary-500 px-5 py-2.5 rounded-xl"
-                onPress={() => router.push('/(app)/(tabs)/scan')}
+                onPress={() => router.push('/(app)/(tabs)scan')}
               >
                 <Text className="text-white text-sm font-semibold">Scan a Card</Text>
               </TouchableOpacity>
@@ -201,7 +201,7 @@ export default function DashboardScreen() {
                       <Text className="text-slate-200 text-sm font-medium">{fullName}</Text>
                       {(contact.designation || contact.company) && (
                         <Text className="text-slate-500 text-xs mt-0.5" numberOfLines={1}>
-                          {[contact.designation, contact.company].filter(Boolean).join(' · ')}
+                          {[contact.designation, contact.company].filter(Boolean).join(' Â· ')}
                         </Text>
                       )}
                     </View>
@@ -216,3 +216,4 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
+

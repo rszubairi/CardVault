@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -75,7 +75,7 @@ export default function ScanResultScreen() {
   useEffect(() => {
     if (!imageUri) return;
 
-    // Upload runs in background — doesn't block the form from showing
+    // Upload runs in background â€” doesn't block the form from showing
     uploadImageToConvex(imageUri, generateUploadUrl)
       .then((storageId) => { storageIdRef.current = storageId; })
       .catch(() => { /* will retry at save time */ });
@@ -282,7 +282,7 @@ export default function ScanResultScreen() {
               label="Discard"
               variant="ghost"
               fullWidth
-              onPress={() => router.replace('/(app)/(tabs)/scan')}
+              onPress={() => router.replace('/(app)/(tabs)scan')}
               className="mt-2"
             />
           </>
@@ -297,3 +297,4 @@ export default function ScanResultScreen() {
     </SafeAreaView>
   );
 }
+

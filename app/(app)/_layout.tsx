@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+﻿import React, { useEffect, useRef, useState } from 'react';
 import {
   Stack,
   Redirect,
@@ -25,7 +25,7 @@ import {
 } from '../../src/lib/biometric';
 import { hapticSuccess, hapticError } from '../../src/lib/haptics';
 
-// ─── Lock Screen Modal ────────────────────────────────────────────────────────
+// â”€â”€â”€ Lock Screen Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function LockScreen({ onUnlock }: { onUnlock: () => void }) {
   const [authenticating, setAuthenticating] = useState(false);
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
 });
 
-// ─── Security Provider ────────────────────────────────────────────────────────
+// â”€â”€â”€ Security Provider â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function SecurityProvider({ children }: { children: React.ReactNode }) {
   const {
@@ -180,7 +180,7 @@ function SecurityProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  // AppState listener — background/foreground transitions
+  // AppState listener â€” background/foreground transitions
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       const prev = appStateRef.current;
@@ -221,7 +221,7 @@ function SecurityProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── App Layout ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ App Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function AppLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -290,3 +290,4 @@ export default function AppLayout() {
     </SecurityProvider>
   );
 }
+

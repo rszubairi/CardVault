@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Doc } from '../../../convex/_generated/dataModel';
 
-// ─── Card colour palettes ─────────────────────────────────────────────────────
+// â”€â”€â”€ Card colour palettes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PALETTES = [
   { bg: '#1E1B4B', accent: '#818CF8', text: '#C7D2FE' },
@@ -34,7 +34,7 @@ function palette(seed: string) {
   return PALETTES[Math.abs(h) % PALETTES.length];
 }
 
-// ─── Business Card tile ───────────────────────────────────────────────────────
+// â”€â”€â”€ Business Card tile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type ConvexContact = Doc<'contacts'>;
 
@@ -81,7 +81,7 @@ function BusinessCard({
             }}
             numberOfLines={2}
           >
-            {contact.company ?? '—'}
+            {contact.company ?? 'â€”'}
           </Text>
           {contact.favorite && (
             <Ionicons name="star" size={12} color="#FBBF24" />
@@ -135,7 +135,7 @@ function BusinessCard({
   );
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function ContactsScreen() {
   const router          = useRouter();
@@ -233,7 +233,7 @@ export default function ContactsScreen() {
           {contacts.length === 0 && (
             <TouchableOpacity
               className="mt-5 bg-primary-500 px-6 py-3 rounded-xl"
-              onPress={() => router.push('/(app)/(tabs)/scan')}
+              onPress={() => router.push('/(app)/(tabs)scan')}
             >
               <Text className="text-white text-sm font-semibold">Scan a Card</Text>
             </TouchableOpacity>
@@ -260,3 +260,4 @@ export default function ContactsScreen() {
     </SafeAreaView>
   );
 }
+

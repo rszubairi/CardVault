@@ -65,10 +65,10 @@ export async function exchangeGoogleCode(
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         code,
-        client_id:     clientId,
-        redirect_uri:  redirectUri,
-        grant_type:    'authorization_code',
-        code_verifier: codeVerifier,
+        client_id:    clientId,
+        redirect_uri: redirectUri,
+        grant_type:   'authorization_code',
+        ...(codeVerifier ? { code_verifier: codeVerifier } : {}),
       }).toString(),
     });
     if (!res.ok) return null;

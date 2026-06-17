@@ -16,7 +16,7 @@ export const getOrCreate = mutation({
       .unique();
 
     if (existing) {
-      return existing._id;
+      return { userId: existing._id, isNew: false };
     }
 
     const userId = await ctx.db.insert('users', {
@@ -35,7 +35,7 @@ export const getOrCreate = mutation({
       updatedAt: Date.now(),
     });
 
-    return userId;
+    return { userId, isNew: true };
   },
 });
 

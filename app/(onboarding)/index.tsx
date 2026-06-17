@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+﻿import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -19,15 +19,15 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const SLIDES = [
   {
     key:      'scan',
-    emoji:    '📷',
+    emoji:    'ðŸ“·',
     bg:       '#0F0F23',
     accent:   '#6366F1',
     title:    'Scan Any Card',
-    subtitle: 'Point your camera at any business card. AI extracts every contact detail in under a second — no typing required.',
+    subtitle: 'Point your camera at any business card. AI extracts every contact detail in under a second â€” no typing required.',
   },
   {
     key:      'organize',
-    emoji:    '🤝',
+    emoji:    'ðŸ¤',
     bg:       '#0A1628',
     accent:   '#0EA5E9',
     title:    'Build Relationships',
@@ -35,7 +35,7 @@ const SLIDES = [
   },
   {
     key:      'connect',
-    emoji:    '💬',
+    emoji:    'ðŸ’¬',
     bg:       '#160F1F',
     accent:   '#A855F7',
     title:    'Connect Instantly',
@@ -242,3 +242,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+
