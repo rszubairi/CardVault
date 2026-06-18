@@ -42,3 +42,6 @@ website/node_modules/
 
 expo-env.d.ts
 # @end expo-cli
+# Build artifacts
+website/public/downloads/*.ipa
+website/public/downloads/*.apk
