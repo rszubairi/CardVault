@@ -18,7 +18,8 @@
         "NSPhotoLibraryUsageDescription": "CardVault needs photo library access to save and import business card images.",
         "NSCalendarsUsageDescription": "CardVault uses your calendar to link contacts to events where you met them.",
         "NSMicrophoneUsageDescription": "CardVault needs microphone access to record voice notes.",
-        "NSFaceIDUsageDescription": "CardVault uses Face ID to securely lock your contacts."
+        "NSFaceIDUsageDescription": "CardVault uses Face ID to securely lock your contacts.",
+        "NSContactsUsageDescription": "CardVault syncs your scanned business cards to your device contacts."
       }
     },
     "android": {
@@ -114,7 +115,9 @@
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.USE_BIOMETRIC",
-        "android.permission.USE_FINGERPRINT"
+        "android.permission.USE_FINGERPRINT",
+        "READ_CONTACTS",
+        "WRITE_CONTACTS"
       ]
     },
     "web": {

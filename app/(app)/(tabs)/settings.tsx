@@ -29,6 +29,8 @@ import {
 import { clearSession } from '../../../src/lib/auth';
 import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
+import { useSettingsStore } from '../../../src/stores/settingsStore';
+import { syncAllToDevice, hasBeenSynced } from '../../../src/lib/deviceContacts';
 
 type SettingRow = {
   icon: string;
@@ -81,6 +83,8 @@ export default function SettingsScreen() {
   const { user, token, signOut, setUser } = useAuthStore();
   const { plan, scanCount, scanLimit } = useSubscriptionStore();
   const { biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout } = useSecurityStore();
+  const { syncToPhone, setSyncToPhone } = useSettingsStore();
+  const allContacts = useQuery(api.contacts.list, user?._id ? { userId: user._id } : 'skip');
   const updateProfile = useMutation(api.users.updateProfile);
   const convexUser = useQuery(api.users.getById, user?._id ? { userId: user._id as any } : 'skip');
   const [darkMode, setDarkMode] = React.useState(true);
@@ -131,6 +135,15 @@ export default function SettingsScreen() {
       if (available) getBiometricType().then(setBiometricType).catch(() => {});
     }).catch(() => {});
   }, []);
+
+  const handleSyncToPhoneToggle = async (value: boolean) => {
+    await setSyncToPhone(value);
+    if (value && allContacts && allContacts.length > 0) {
+      // If turned on and full sync hasn't run yet, kick it off now
+      const synced = await hasBeenSynced();
+      if (!synced) syncAllToDevice(allContacts as any[]);
+    }
+  };
 
   const handleBiometricToggle = async (value: boolean) => {
     if (value) {
@@ -320,6 +333,13 @@ export default function SettingsScreen() {
               toggle
               toggleValue={notifications}
               onToggle={setNotifications}
+            />
+            <Row
+              icon="people-circle-outline"
+              label="Sync to Phone Contacts"
+              toggle
+              toggleValue={syncToPhone}
+              onToggle={handleSyncToPhoneToggle}
             />
             <Row icon="language-outline"  label="Language"  value="English" onPress={() => {}} />
             <Row icon="color-palette-outline" label="Theme" value="Indigo" onPress={() => {}} />

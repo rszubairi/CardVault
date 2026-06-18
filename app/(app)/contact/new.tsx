@@ -14,12 +14,15 @@ import { api } from '../../../convex/_generated/api';
 import Input from '../../../src/components/ui/Input';
 import Button from '../../../src/components/ui/Button';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { pushContactToDevice } from '../../../src/lib/deviceContacts';
+import { useSettingsStore } from '../../../src/stores/settingsStore';
 
 export default function NewContactScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const createContact = useMutation(api.contacts.create);
   const [saving, setSaving] = useState(false);
+  const { syncToPhone } = useSettingsStore();
 
   const [fields, setFields] = useState({
     firstName:   '',
@@ -58,10 +61,21 @@ export default function NewContactScreen() {
         source:      'manual',
         isShared:    false,
       });
-      router.replace({
-        pathname: '/(app)/contact/[id]',
-        params:   { id: contactId },
-      });
+      if (syncToPhone) {
+        pushContactToDevice({
+          _id:         contactId,
+          firstName:   fields.firstName,
+          lastName:    fields.lastName,
+          designation: fields.designation || undefined,
+          company:     fields.company     || undefined,
+          email:       fields.email       || undefined,
+          phone:       fields.phone       || undefined,
+          mobile:      fields.mobile      || undefined,
+          website:     fields.website     || undefined,
+        });
+      }
+
+      router.replace({ pathname: '/(app)/contact/[id]', params: { id: contactId } });
     } catch {
       Alert.alert('Error', 'Could not save contact.');
     } finally {

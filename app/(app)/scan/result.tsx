@@ -15,6 +15,8 @@ import { useMutation, useAction, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { extractFromImage } from '../../../src/lib/ocr';
 import { OcrResult } from '../../../src/types';
+import { pushContactToDevice } from '../../../src/lib/deviceContacts';
+import { useSettingsStore } from '../../../src/stores/settingsStore';
 import Input from '../../../src/components/ui/Input';
 import Button from '../../../src/components/ui/Button';
 import Card from '../../../src/components/ui/Card';
@@ -49,6 +51,7 @@ export default function ScanResultScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { incrementScanCount } = useSubscriptionStore();
+  const { syncToPhone } = useSettingsStore();
   const createContact   = useMutation(api.contacts.create);
   const generateUploadUrl = useMutation(api.contacts.generateUploadUrl);
 
@@ -85,7 +88,17 @@ export default function ScanResultScreen() {
   useEffect(() => {
     if (!imageUri) return;
 
-    // Upload runs in background â€” doesn't block the form from showing
+    // Reset all state immediately so previous scan's data never bleeds through
+    setOcr(null);
+    setScanning(true);
+    setReviewing(false);
+    storageIdRef.current = undefined;
+    setFields({
+      firstName: '', lastName: '', designation: '', company: '',
+      email: '', phone: '', mobile: '', website: '', linkedinUrl: '', address: '',
+    });
+
+    // Upload runs in background — doesn't block the form from showing
     uploadImageToConvex(imageUri, generateUploadUrl)
       .then((storageId) => { storageIdRef.current = storageId; })
       .catch(() => { /* will retry at save time */ });
@@ -200,10 +213,21 @@ export default function ScanResultScreen() {
 
       incrementScanCount();
 
-      router.replace({
-        pathname: '/(app)/contact/[id]',
-        params:   { id: contactId },
-      });
+      if (syncToPhone) {
+        pushContactToDevice({
+          _id:         contactId,
+          firstName:   fields.firstName,
+          lastName:    fields.lastName,
+          designation: fields.designation || undefined,
+          company:     fields.company     || undefined,
+          email:       fields.email       || undefined,
+          phone:       fields.phone       || undefined,
+          mobile:      fields.mobile      || undefined,
+          website:     fields.website     || undefined,
+        });
+      }
+
+      router.replace({ pathname: '/(app)/contact/[id]', params: { id: contactId } });
     } catch {
       Alert.alert('Save Failed', 'Could not save the contact. Please try again.');
     } finally {

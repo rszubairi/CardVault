@@ -17,10 +17,10 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 
 const QUICK_ACTIONS = [
-  { icon: 'scan',       label: 'Scan Card',    href: '/(app)/(tabs)scan',     color: '#6366F1' },
-  { icon: 'search',     label: 'Search',        href: '/(app)/(tabs)contacts', color: '#10B981' },
-  { icon: 'calendar',   label: 'Events',        href: '/(app)/events',          color: '#F59E0B' },
-  { icon: 'person-add', label: 'Add Contact',   href: '/(app)/contact/new',     color: '#3B82F6' },
+  { icon: 'scan',       label: 'Scan',    href: '/(app)/(tabs)/scan',     color: '#6366F1' },
+  { icon: 'search',     label: 'Search',  href: '/(app)/(tabs)/contacts', color: '#10B981' },
+  { icon: 'person-add', label: 'Add',     href: '/(app)/contact/new',     color: '#3B82F6' },
+  { icon: 'download-outline', label: 'Export', href: '/(app)/export',    color: '#F59E0B' },
 ] as const;
 
 function ContactInitials({ name }: { name: string }) {
@@ -85,7 +85,7 @@ export default function DashboardScreen() {
           </View>
           <TouchableOpacity
             className="w-10 h-10 bg-surface-800 rounded-full items-center justify-center"
-            onPress={() => router.push('/(app)/(tabs)settings')}
+            onPress={() => router.push('/(app)/(tabs)/settings')}
           >
             <Ionicons name="person-outline" size={20} color="#94A3B8" />
           </TouchableOpacity>
@@ -109,45 +109,50 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Stats Grid */}
-        <View className="px-5 mb-6">
+        {/* Stats strip */}
+        <View className="px-5 mb-5">
           <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3">
             Overview
           </Text>
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row gap-2">
             {statCards.map(({ label, value, icon, color }) => (
-              <Card key={label} className="flex-1 min-w-[44%] p-4">
-                <Ionicons name={icon as any} size={22} color={color} />
+              <View
+                key={label}
+                className="flex-1 bg-surface-800 rounded-2xl px-3 py-3 items-center"
+              >
+                <Ionicons name={icon as any} size={16} color={color} />
                 {stats === undefined ? (
-                  <ActivityIndicator color={color} size="small" style={{ marginTop: 8 }} />
+                  <ActivityIndicator color={color} size="small" style={{ marginTop: 4 }} />
                 ) : (
-                  <Text className="text-slate-50 text-2xl font-bold mt-2">{value}</Text>
+                  <Text className="text-slate-50 text-lg font-bold mt-1">{value}</Text>
                 )}
-                <Text className="text-slate-400 text-xs mt-0.5">{label}</Text>
-              </Card>
+                <Text className="text-slate-500 text-xs mt-0.5 text-center" numberOfLines={2}>
+                  {label}
+                </Text>
+              </View>
             ))}
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View className="px-5 mb-6">
+        {/* Quick Actions — single row */}
+        <View className="px-5 mb-5">
           <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3">
             Quick Actions
           </Text>
-          <View className="flex-row flex-wrap gap-3">
+          <View className="flex-row gap-2">
             {QUICK_ACTIONS.map(({ icon, label, href, color }) => (
               <TouchableOpacity
                 key={label}
-                className="flex-1 min-w-[44%] bg-surface-800 rounded-2xl p-4 items-center"
+                className="flex-1 bg-surface-800 rounded-2xl py-3 items-center"
                 onPress={() => router.push(href as any)}
               >
                 <View
-                  className="w-12 h-12 rounded-2xl items-center justify-center mb-2"
+                  className="w-9 h-9 rounded-xl items-center justify-center mb-1.5"
                   style={{ backgroundColor: color + '22' }}
                 >
-                  <Ionicons name={icon as any} size={24} color={color} />
+                  <Ionicons name={icon as any} size={18} color={color} />
                 </View>
-                <Text className="text-slate-300 text-sm font-medium text-center">{label}</Text>
+                <Text className="text-slate-300 text-xs font-medium text-center">{label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -159,7 +164,7 @@ export default function DashboardScreen() {
             <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest">
               Recent Contacts
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)contacts')}>
+            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/contacts')}>
               <Text className="text-primary-400 text-sm">See all</Text>
             </TouchableOpacity>
           </View>
@@ -178,7 +183,7 @@ export default function DashboardScreen() {
               </Text>
               <TouchableOpacity
                 className="mt-4 bg-primary-500 px-5 py-2.5 rounded-xl"
-                onPress={() => router.push('/(app)/(tabs)scan')}
+                onPress={() => router.push('/(app)/(tabs)/scan')}
               >
                 <Text className="text-white text-sm font-semibold">Scan a Card</Text>
               </TouchableOpacity>

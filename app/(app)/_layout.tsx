@@ -18,6 +18,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSecurityStore } from '../../src/stores/securityStore';
+import { useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
+import { syncAllToDevice, hasBeenSynced } from '../../src/lib/deviceContacts';
+import { useSettingsStore } from '../../src/stores/settingsStore';
 import {
   loadBiometricPreference,
   loadLockTimeout,
@@ -223,6 +227,23 @@ function SecurityProvider({ children }: { children: React.ReactNode }) {
 
 // â”€â”€â”€ App Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+function ContactSyncProvider() {
+  const { user } = useAuthStore();
+  const { syncToPhone, loaded, loadSettings } = useSettingsStore();
+  const contacts = useQuery(api.contacts.list, user ? { userId: user._id } : 'skip');
+
+  useEffect(() => { loadSettings(); }, []);
+
+  useEffect(() => {
+    if (!loaded || !syncToPhone || !contacts || contacts.length === 0) return;
+    hasBeenSynced().then((synced) => {
+      if (!synced) syncAllToDevice(contacts as any[]);
+    });
+  }, [loaded, syncToPhone, contacts?.length]);
+
+  return null;
+}
+
 export default function AppLayout() {
   const { isAuthenticated, isLoading } = useAuthStore();
 
@@ -240,6 +261,7 @@ export default function AppLayout() {
 
   return (
     <SecurityProvider>
+      <ContactSyncProvider />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
