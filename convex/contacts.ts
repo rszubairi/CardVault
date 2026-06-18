@@ -215,6 +215,31 @@ export const listOrgShared = query({
   },
 });
 
+export const findDuplicate = query({
+  args: {
+    userId: v.id('users'),
+    email:  v.optional(v.string()),
+    phone:  v.optional(v.string()),
+  },
+  handler: async (ctx, { userId, email, phone }) => {
+    if (email) {
+      const byEmail = await ctx.db
+        .query('contacts')
+        .withIndex('by_user_email', (q) => q.eq('userId', userId).eq('email', email.toLowerCase()))
+        .first();
+      if (byEmail) return byEmail;
+    }
+    if (phone) {
+      const byPhone = await ctx.db
+        .query('contacts')
+        .withIndex('by_user_phone', (q) => q.eq('userId', userId).eq('phone', phone))
+        .first();
+      if (byPhone) return byPhone;
+    }
+    return null;
+  },
+});
+
 export const detectDuplicates = query({
   args: { organizationId: v.id('organizations') },
   handler: async (ctx, { organizationId }) => {

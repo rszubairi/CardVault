@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
@@ -82,25 +82,39 @@ export default function SettingsScreen() {
   const { plan, scanCount, scanLimit } = useSubscriptionStore();
   const { biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout } = useSecurityStore();
   const updateProfile = useMutation(api.users.updateProfile);
+  const convexUser = useQuery(api.users.getById, user?._id ? { userId: user._id as any } : 'skip');
   const [darkMode, setDarkMode] = React.useState(true);
   const [notifications, setNotifications] = React.useState(true);
   const [biometricType, setBiometricType] = React.useState<BiometricType>('Biometric' as BiometricType);
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
 
-  const [phone, setPhone] = React.useState(user?.phone ?? '');
-  const [linkedinUrl, setLinkedinUrl] = React.useState(user?.linkedinUrl ?? '');
+  const [phone, setPhone] = React.useState('');
+  const [linkedinHandle, setLinkedinHandle] = React.useState('');
+
+  // Populate fields once Convex data loads
+  React.useEffect(() => {
+    if (convexUser) {
+      setPhone(convexUser.phone ?? '');
+      const url = convexUser.linkedinUrl ?? '';
+      const prefix = 'https://www.linkedin.com/in/';
+      setLinkedinHandle(url.startsWith(prefix) ? url.slice(prefix.length) : url);
+    }
+  }, [convexUser]);
   const [profileSaving, setProfileSaving] = React.useState(false);
 
   const handleSaveProfile = async () => {
     if (!user?._id) return;
     setProfileSaving(true);
     try {
+      const fullLinkedinUrl = linkedinHandle.trim()
+        ? `https://www.linkedin.com/in/${linkedinHandle.trim()}`
+        : undefined;
       await updateProfile({
         userId: user._id,
         phone: phone.trim() || undefined,
-        linkedinUrl: linkedinUrl.trim() || undefined,
+        linkedinUrl: fullLinkedinUrl,
       });
-      const updated = { ...user, phone: phone.trim() || undefined, linkedinUrl: linkedinUrl.trim() || undefined };
+      const updated = { ...user, phone: phone.trim() || undefined, linkedinUrl: fullLinkedinUrl };
       setUser(updated as any);
       await storeSession(token ?? '', updated);
       Alert.alert('Saved', 'Profile updated successfully.');
@@ -230,14 +244,16 @@ export default function SettingsScreen() {
               <Text className="text-slate-400 text-xs mb-1 ml-1">LinkedIn Profile</Text>
               <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
                 <Ionicons name="logo-linkedin" size={16} color="#0A66C2" />
+                <Text className="text-slate-500 ml-2 text-sm">linkedin.com/in/</Text>
                 <TextInput
-                  value={linkedinUrl}
-                  onChangeText={setLinkedinUrl}
-                  placeholder="https://linkedin.com/in/yourname"
+                  value={linkedinHandle}
+                  onChangeText={setLinkedinHandle}
+                  placeholder="yourname"
                   placeholderTextColor="#475569"
                   autoCapitalize="none"
+                  autoCorrect={false}
                   keyboardType="url"
-                  className="flex-1 ml-2 text-sm"
+                  className="flex-1 text-sm"
                   style={{ color: '#e2e8f0' }}
                 />
               </View>

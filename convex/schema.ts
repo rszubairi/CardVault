@@ -141,11 +141,13 @@ export default defineSchema({
     createdAt:  v.number(),
     updatedAt:  v.number(),
   })
-    .index('by_user',    ['userId'])
-    .index('by_org',     ['organizationId'])
-    .index('by_event',   ['eventId'])
-    .index('by_email',   ['email'])
-    .index('by_company', ['company'])
+    .index('by_user',       ['userId'])
+    .index('by_org',        ['organizationId'])
+    .index('by_event',      ['eventId'])
+    .index('by_email',      ['email'])
+    .index('by_company',    ['company'])
+    .index('by_user_email', ['userId', 'email'])
+    .index('by_user_phone', ['userId', 'phone'])
     .searchIndex('search_contacts', {
       searchField: 'firstName',
       filterFields: ['userId', 'organizationId', 'tags'],

@@ -17,6 +17,7 @@ import type * as http from "../http.js";
 import type * as interactions from "../interactions.js";
 import type * as notes from "../notes.js";
 import type * as notifications from "../notifications.js";
+import type * as ocr from "../ocr.js";
 import type * as organizations from "../organizations.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   interactions: typeof interactions;
   notes: typeof notes;
   notifications: typeof notifications;
+  ocr: typeof ocr;
   organizations: typeof organizations;
   subscriptions: typeof subscriptions;
   users: typeof users;

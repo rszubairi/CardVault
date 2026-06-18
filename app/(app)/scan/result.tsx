@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useMutation } from 'convex/react';
+import { useMutation, useAction, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { extractFromImage } from '../../../src/lib/ocr';
 import { OcrResult } from '../../../src/types';
@@ -52,7 +52,10 @@ export default function ScanResultScreen() {
   const createContact   = useMutation(api.contacts.create);
   const generateUploadUrl = useMutation(api.contacts.generateUploadUrl);
 
+  const reviewOcr     = useAction(api.ocr.reviewExtraction);
+
   const [scanning, setScanning]           = useState(true);
+  const [reviewing, setReviewing]         = useState(false);
   const [saving, setSaving]               = useState(false);
   const [ocr, setOcr]                     = useState<OcrResult | null>(null);
   const [eventPickerOpen, setEventPickerOpen] = useState(false);
@@ -72,6 +75,13 @@ export default function ScanResultScreen() {
     address:     '',
   });
 
+  const duplicate = useQuery(
+    api.contacts.findDuplicate,
+    user && (fields.email || fields.phone)
+      ? { userId: user._id, email: fields.email || undefined, phone: fields.phone || undefined }
+      : 'skip',
+  );
+
   useEffect(() => {
     if (!imageUri) return;
 
@@ -80,11 +90,11 @@ export default function ScanResultScreen() {
       .then((storageId) => { storageIdRef.current = storageId; })
       .catch(() => { /* will retry at save time */ });
 
-    // OCR alone controls the loading state
+    // OCR extraction then AI review pass
     extractFromImage(imageUri)
-      .then((result) => {
+      .then(async (result) => {
         setOcr(result);
-        setFields({
+        const initial = {
           firstName:   result.firstName   ?? '',
           lastName:    result.lastName    ?? '',
           designation: result.designation ?? '',
@@ -95,18 +105,68 @@ export default function ScanResultScreen() {
           website:     result.website     ?? '',
           linkedinUrl: result.linkedinUrl ?? '',
           address:     '',
-        });
+        };
+        setFields(initial);
+        setScanning(false);
         setEventPickerOpen(true);
+
+        // AI review runs in background after the form is already visible
+        setReviewing(true);
+        try {
+          const corrections = await reviewOcr({
+            rawText:     result.rawText,
+            firstName:   result.firstName,
+            lastName:    result.lastName,
+            designation: result.designation,
+            company:     result.company,
+            email:       result.email,
+            phone:       result.phone,
+          });
+          if (corrections && Object.keys(corrections).length > 0) {
+            setFields((prev) => ({
+              ...prev,
+              ...(corrections.firstName  !== undefined ? { firstName:   corrections.firstName  ?? '' } : {}),
+              ...(corrections.lastName   !== undefined ? { lastName:    corrections.lastName   ?? '' } : {}),
+              ...(corrections.designation!== undefined ? { designation: corrections.designation ?? '' } : {}),
+              ...(corrections.company    !== undefined ? { company:     corrections.company    ?? '' } : {}),
+            }));
+          }
+        } catch {
+          // Review failure is non-fatal; user sees original OCR values
+        } finally {
+          setReviewing(false);
+        }
       })
-      .catch(() => Alert.alert('OCR Error', 'Could not extract text. Please fill in manually.'))
-      .finally(() => setScanning(false));
-  }, [imageUri]);
+      .catch(() => {
+        Alert.alert('OCR Error', 'Could not extract text. Please fill in manually.');
+        setScanning(false);
+      });
+  }, [imageUri, reviewOcr]);
 
   const handleSave = async () => {
     if (!user || !fields.firstName) {
       Alert.alert('Missing Name', 'Please enter at least a first name.');
       return;
     }
+
+    if (duplicate) {
+      const name = [duplicate.firstName, duplicate.lastName].filter(Boolean).join(' ');
+      const proceed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Possible Duplicate',
+          `You already have a contact named "${name}" with the same ${fields.email && duplicate.email === fields.email ? 'email' : 'phone number'}.`,
+          [
+            { text: 'View Existing', style: 'cancel', onPress: () => {
+              router.replace({ pathname: '/(app)/contact/[id]', params: { id: duplicate._id } });
+              resolve(false);
+            }},
+            { text: 'Save Anyway', onPress: () => resolve(true) },
+          ],
+        );
+      });
+      if (!proceed) return;
+    }
+
     setSaving(true);
     try {
       // If background upload hasn't finished yet, try once more at save time
@@ -185,6 +245,31 @@ export default function ScanResultScreen() {
             <ActivityIndicator color="#6366F1" size="large" />
             <Text className="text-slate-300 text-sm mt-3">Extracting card information...</Text>
           </Card>
+        )}
+
+        {/* AI review in progress */}
+        {reviewing && !scanning && (
+          <View className="flex-row items-center bg-primary-900/30 border border-primary-700/40 rounded-xl px-4 py-3 mb-4">
+            <ActivityIndicator color="#6366F1" size="small" />
+            <Text className="text-primary-300 text-xs ml-3">AI reviewing extraction for errors...</Text>
+          </View>
+        )}
+
+        {/* Duplicate warning */}
+        {duplicate && !scanning && (
+          <TouchableOpacity
+            onPress={() => router.replace({ pathname: '/(app)/contact/[id]', params: { id: duplicate._id } })}
+            className="flex-row items-center bg-amber-900/30 border border-amber-600/40 rounded-xl px-4 py-3 mb-4"
+          >
+            <Ionicons name="warning-outline" size={18} color="#F59E0B" />
+            <View className="flex-1 ml-3">
+              <Text className="text-amber-400 text-xs font-semibold">Possible duplicate</Text>
+              <Text className="text-amber-300/80 text-xs mt-0.5">
+                {[duplicate.firstName, duplicate.lastName].filter(Boolean).join(' ')} already exists — tap to view
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={14} color="#F59E0B" />
+          </TouchableOpacity>
         )}
 
         {/* Edit Fields */}
@@ -282,7 +367,7 @@ export default function ScanResultScreen() {
               label="Discard"
               variant="ghost"
               fullWidth
-              onPress={() => router.replace('/(app)/(tabs)scan')}
+              onPress={() => router.replace('/(app)/(tabs)/scan')}
               className="mt-2"
             />
           </>

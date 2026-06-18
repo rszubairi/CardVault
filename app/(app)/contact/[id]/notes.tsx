@@ -147,7 +147,7 @@ export default function ContactNotesScreen() {
 
       const { AudioRecorder } = await import('expo-audio');
       const recorder = new AudioRecorder(RecordingPresets.HIGH_QUALITY);
-      await recorder.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
+      await recorder.prepareToRecordAsync();
       recorder.record();
       recorderRef.current = recorder;
       setRecordingState('recording');
@@ -165,24 +165,25 @@ export default function ContactNotesScreen() {
 
     try {
       const recorder = recorderRef.current;
-      await recorder.stop();
+      const result = await recorder.stop();
       await setAudioModeAsync({
         allowsRecording: false,
         playsInSilentMode: false,
         shouldPlayInBackground: false,
         interruptionMode: 'mixWithOthers',
       });
-      const uri = recorder.uri || '';
+      const uri = result?.uri || recorder.uri || '';
       const duration = recordingDuration;
 
       // Upload audio to Convex storage (falls back to local URI in dev builds)
       let audioUrl = uri;
       try {
         const uploadUrl = await getUploadUrl({});
+        const blob = await (await fetch(uri)).blob();
         const res = await fetch(uploadUrl, {
-          method: 'PUT',
+          method: 'POST',
           headers: { 'Content-Type': 'audio/m4a' },
-          body: await (await fetch(uri)).blob(),
+          body: blob,
         });
         const { storageId } = await res.json();
         audioUrl = storageId;

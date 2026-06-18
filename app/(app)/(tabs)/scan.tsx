@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
@@ -91,13 +91,20 @@ export default function ScanScreen() {
     }, POLL_INTERVAL_MS);
   }, [doCapture]);
 
-  useEffect(() => {
-    if (permission?.granted) startPolling();
-    return () => {
-      if (pollingRef.current)   clearInterval(pollingRef.current);
-      if (captureTimer.current) clearTimeout(captureTimer.current);
-    };
-  }, [permission?.granted, startPolling]);
+  // Reset state and restart polling every time this screen comes into focus.
+  // Without this, the tab-cached component stays stuck in 'capturing' after a scan.
+  useFocusEffect(
+    useCallback(() => {
+      if (!permission?.granted) return;
+      detectionRef.current = 'scanning';
+      setDetection('scanning');
+      startPolling();
+      return () => {
+        if (pollingRef.current)   clearInterval(pollingRef.current);
+        if (captureTimer.current) clearTimeout(captureTimer.current);
+      };
+    }, [permission?.granted, startPolling])
+  );
 
   const handleManualCapture = () => {
     if (detectionRef.current === 'capturing') return;
