@@ -13,13 +13,15 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.cardvault.ios",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "NSCameraUsageDescription": "CardVault needs camera access to scan business cards.",
         "NSPhotoLibraryUsageDescription": "CardVault needs photo library access to save and import business card images.",
         "NSCalendarsUsageDescription": "CardVault uses your calendar to link contacts to events where you met them.",
         "NSMicrophoneUsageDescription": "CardVault needs microphone access to record voice notes.",
         "NSFaceIDUsageDescription": "CardVault uses Face ID to securely lock your contacts.",
-        "NSContactsUsageDescription": "CardVault syncs your scanned business cards to your device contacts."
+        "NSContactsUsageDescription": "CardVault syncs your scanned business cards to your device contacts.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -117,7 +119,10 @@
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
         "READ_CONTACTS",
-        "WRITE_CONTACTS"
+        "WRITE_CONTACTS",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -125,6 +130,15 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "./plugins/withModularHeaders",
       "expo-router",
       "@react-native-google-signin/google-signin",
       "expo-secure-store",

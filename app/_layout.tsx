@@ -29,9 +29,9 @@ Notifications.setNotificationHandler({
 
 if (Platform.OS !== 'web') {
   Promise.all([
-    import('@react-native-firebase/crashlytics').then(m => m.default().setCrashlyticsCollectionEnabled(!__DEV__)),
-    import('@react-native-firebase/analytics').then(m => m.default().setAnalyticsCollectionEnabled(!__DEV__)),
-  ]);
+    import('@react-native-firebase/crashlytics').then(m => m.default().setCrashlyticsCollectionEnabled(!__DEV__)).catch(() => {}),
+    import('@react-native-firebase/analytics').then(m => m.default().setAnalyticsCollectionEnabled(!__DEV__)).catch(() => {}),
+  ]).catch(() => {});
 }
 
 const convex = new ConvexReactClient(process.env.EXPO_PUBLIC_CONVEX_URL ?? '');
@@ -100,7 +100,9 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
         });
       }
 
-      const token = (await Notifications.getExpoPushTokenAsync()).data;
+      const token = (await Notifications.getExpoPushTokenAsync({
+        projectId: '122beacb-9b7b-41bd-91cc-0efc20f2b5eb',
+      })).data;
       await updatePushToken({ userId: user._id, pushToken: token });
     })().catch(() => { });
   }, [user?._id]);
