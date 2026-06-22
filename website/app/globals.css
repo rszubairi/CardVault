@@ -52,4 +52,92 @@
   .glow-lg {
     box-shadow: 0 0 60px rgba(99, 102, 241, 0.2);
   }
+
+  /* ── Security section animations ── */
+
+  /* Expanding rings from shield center */
+  @keyframes sec-ring {
+    0%   { r: 52; opacity: 0.55; }
+    100% { r: 105; opacity: 0; }
+  }
+
+  /* Shield inner glow breath */
+  @keyframes sec-shield-glow {
+    0%, 100% { opacity: 0.12; }
+    50%       { opacity: 0.30; }
+  }
+
+  /* Lock body subtle float */
+  @keyframes sec-lock-float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-3px); }
+  }
+
+  /* Encrypted data blocks opacity pulse */
+  @keyframes sec-cipher {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.65; }
+  }
+
+  /* Sequential PIN dot fills – 6 separate keyframes sharing a 4.2s cycle */
+  @keyframes sec-pin1 {
+    0%,2%          { fill: rgba(99,102,241,0.15); }
+    8%,72%         { fill: #6366f1; }
+    82%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+  @keyframes sec-pin2 {
+    0%,18%         { fill: rgba(99,102,241,0.15); }
+    24%,72%        { fill: #6366f1; }
+    82%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+  @keyframes sec-pin3 {
+    0%,33%         { fill: rgba(99,102,241,0.15); }
+    39%,72%        { fill: #6366f1; }
+    82%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+  @keyframes sec-pin4 {
+    0%,48%         { fill: rgba(99,102,241,0.15); }
+    54%,72%        { fill: #6366f1; }
+    82%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+  @keyframes sec-pin5 {
+    0%,63%         { fill: rgba(99,102,241,0.15); }
+    69%,72%        { fill: #6366f1; }
+    82%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+  @keyframes sec-pin6 {
+    0%,76%         { fill: rgba(99,102,241,0.15); }
+    82%,86%        { fill: #6366f1; }
+    94%,100%       { fill: rgba(99,102,241,0.15); }
+  }
+
+  /* Card float */
+  @keyframes sec-float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-6px); }
+  }
+
+  /* Key icon rotation */
+  @keyframes sec-key-spin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Check mark draw */
+  @keyframes sec-draw {
+    0%   { stroke-dashoffset: 60; }
+    100% { stroke-dashoffset: 0; }
+  }
+
+  /* Particle fade for animateMotion circles */
+  @keyframes sec-particle {
+    0%, 100% { opacity: 0; }
+    10%, 88%  { opacity: 1; }
+  }
+
+  /* Encrypted text scramble shimmer */
+  @keyframes sec-scramble {
+    0%,100% { opacity: 0.20; letter-spacing: 0px; }
+    50%     { opacity: 0.55; letter-spacing: 1px; }
+  }
 }

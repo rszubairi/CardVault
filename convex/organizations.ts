@@ -1,5 +1,8 @@
-import { mutation, query } from './_generated/server';
+import { internalAction, mutation, query } from './_generated/server';
+import { internal } from './_generated/api';
 import { v } from 'convex/values';
+
+const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
 export const create = mutation({
   args: {
@@ -82,6 +85,7 @@ export const listMembers = query({
 export const inviteByEmail = mutation({
   args: {
     organizationId: v.id('organizations'),
+    actorUserId:    v.id('users'),
     email:          v.string(),
     role:           v.union(
       v.literal('admin'),
@@ -90,7 +94,7 @@ export const inviteByEmail = mutation({
       v.literal('read_only'),
     ),
   },
-  handler: async (ctx, { organizationId, email, role }) => {
+  handler: async (ctx, { organizationId, actorUserId, email, role }) => {
     const user = await ctx.db
       .query('users')
       .withIndex('by_email', (q) => q.eq('email', email.toLowerCase().trim()))
@@ -118,6 +122,15 @@ export const inviteByEmail = mutation({
       joinedAt: Date.now(),
     });
 
+    await ctx.db.insert('auditLog', {
+      organizationId,
+      actorUserId,
+      targetUserId: user._id,
+      action: 'member_invited',
+      metadata: { role, email },
+      timestamp: Date.now(),
+    });
+
     return user._id;
   },
 });
@@ -125,6 +138,7 @@ export const inviteByEmail = mutation({
 export const updateRole = mutation({
   args: {
     membershipId: v.id('organizationUsers'),
+    actorUserId:  v.id('users'),
     role: v.union(
       v.literal('admin'),
       v.literal('manager'),
@@ -132,15 +146,85 @@ export const updateRole = mutation({
       v.literal('read_only'),
     ),
   },
-  handler: async (ctx, { membershipId, role }) => {
+  handler: async (ctx, { membershipId, actorUserId, role }) => {
+    const membership = await ctx.db.get(membershipId);
+    if (!membership) throw new Error('Membership not found.');
+
     await ctx.db.patch(membershipId, { role });
+
+    await ctx.db.insert('auditLog', {
+      organizationId: membership.organizationId,
+      actorUserId,
+      targetUserId: membership.userId,
+      action: 'member_role_changed',
+      metadata: { newRole: role },
+      timestamp: Date.now(),
+    });
   },
 });
 
 export const removeMember = mutation({
-  args: { membershipId: v.id('organizationUsers') },
-  handler: async (ctx, { membershipId }) => {
+  args: {
+    membershipId: v.id('organizationUsers'),
+    actorUserId:  v.id('users'),
+  },
+  handler: async (ctx, { membershipId, actorUserId }) => {
+    const membership = await ctx.db.get(membershipId);
+    if (!membership) throw new Error('Membership not found.');
+
+    const { organizationId, userId: removedUserId } = membership;
+
+    // Look up the removed user's push token before deleting the membership
+    const removedUser = await ctx.db.get(removedUserId);
+
     await ctx.db.delete(membershipId);
+
+    // Also remove any per-user policy overrides for this user
+    const userPolicy = await ctx.db
+      .query('organizationUserPolicies')
+      .withIndex('by_org_user', (q) =>
+        q.eq('organizationId', organizationId).eq('userId', removedUserId),
+      )
+      .unique();
+    if (userPolicy) await ctx.db.delete(userPolicy._id);
+
+    await ctx.db.insert('auditLog', {
+      organizationId,
+      actorUserId,
+      targetUserId: removedUserId,
+      action: 'member_removed',
+      timestamp: Date.now(),
+    });
+
+    // Fire-and-forget push notification to trigger device-side org data purge
+    if (removedUser?.pushToken) {
+      await ctx.scheduler.runAfter(0, internal.organizations.sendRevocationPush, {
+        pushToken:      removedUser.pushToken,
+        organizationId: organizationId as string,
+        orgName:        (await ctx.db.get(organizationId))?.name ?? 'your organization',
+      });
+    }
+  },
+});
+
+export const sendRevocationPush = internalAction({
+  args: {
+    pushToken:      v.string(),
+    organizationId: v.string(),
+    orgName:        v.string(),
+  },
+  handler: async (_ctx, { pushToken, organizationId, orgName }) => {
+    await fetch(EXPO_PUSH_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        to:    pushToken,
+        title: 'Access revoked',
+        body:  `Your access to ${orgName} has been removed.`,
+        data:  { type: 'org_revoked', organizationId },
+        sound: 'default',
+      }),
+    });
   },
 });
 

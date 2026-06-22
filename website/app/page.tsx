@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import HowItWorksSection from '../components/HowItWorksSection';
+import SecuritySection from '../components/SecuritySection';
 
 export const metadata: Metadata = {
   title: 'CardVault — AI Business Card CRM',
@@ -90,8 +91,8 @@ const FEATURES = [
   },
   {
     Icon: IconLock,
-    title: 'Biometric Lock',
-    desc:  'Face ID and fingerprint protection keep your contacts private. Auto-locks when the app goes to background.',
+    title: 'PIN Encryption + Biometric Lock',
+    desc:  'Set a 6-digit PIN to encrypt every contact with AES-256-GCM. Layer Face ID or fingerprint on top. Even we can\'t read your data.',
   },
 ];
 
@@ -225,6 +226,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── Security ── */}
+      <SecuritySection />
 
       {/* ── How it works ── */}
       <HowItWorksSection />

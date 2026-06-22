@@ -25,6 +25,8 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { syncAllToDevice, hasBeenSynced } from '../../src/lib/deviceContacts';
 import { useSettingsStore } from '../../src/stores/settingsStore';
+import { useContactStore } from '../../src/stores/contactStore';
+import * as Notifications from 'expo-notifications';
 import {
   loadBiometricPreference,
   loadLockTimeout,
@@ -274,6 +276,24 @@ function UpdateProvider() {
   );
 }
 
+// ─── Org revocation listener ──────────────────────────────────────────────────
+
+function OrgRevocationListener() {
+  const { removeOrgContacts } = useContactStore();
+
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener((notification) => {
+      const data = notification.request.content.data as any;
+      if (data?.type === 'org_revoked' && data?.organizationId) {
+        removeOrgContacts(data.organizationId);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  return null;
+}
+
 // ─── Contact sync ─────────────────────────────────────────────────────────────
 
 function ContactSyncProvider() {
@@ -311,6 +331,7 @@ export default function AppLayout() {
   return (
     <SecurityProvider>
       <ContactSyncProvider />
+      <OrgRevocationListener />
       <UpdateProvider />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />

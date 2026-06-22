@@ -6,16 +6,45 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "consumer"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "consumer"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "consumer"
+      }
+    },
+    "enterprise-development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "enterprise"
+      }
+    },
+    "enterprise-preview": {
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "enterprise"
+      }
+    },
+    "enterprise-production": {
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "enterprise"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "enterprise-production": {}
   }
 }

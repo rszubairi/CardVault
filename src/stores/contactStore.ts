@@ -10,6 +10,7 @@ interface ContactState {
   setContacts: (contacts: Contact[]) => void;
   upsertContact: (contact: Contact) => void;
   removeContact: (id: string) => void;
+  removeOrgContacts: (organizationId: string) => void;
   setSelectedContact: (contact: Contact | null) => void;
   setSearchQuery: (query: string) => void;
   setActiveTag: (tag: string | null) => void;
@@ -38,6 +39,11 @@ export const useContactStore = create<ContactState>((set) => ({
   removeContact: (id) =>
     set((state) => ({
       contacts: state.contacts.filter((c) => c._id !== id),
+    })),
+
+  removeOrgContacts: (organizationId) =>
+    set((state) => ({
+      contacts: state.contacts.filter((c) => (c as any).organizationId !== organizationId),
     })),
 
   setSelectedContact: (selectedContact) =>

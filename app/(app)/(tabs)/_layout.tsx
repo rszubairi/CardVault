@@ -2,6 +2,8 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../../src/constants/theme';
+import { isEnterprise } from '../../../src/config/appVariant';
+import { E } from '../../../enterprise/constants/theme';
 
 export default function TabLayout() {
   return (
@@ -9,15 +11,15 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: Colors.surface[800],
-          borderTopColor: Colors.surface[700],
+          backgroundColor: isEnterprise ? E.surface    : Colors.surface[800],
+          borderTopColor:  isEnterprise ? E.border     : Colors.surface[700],
           borderTopWidth: 1,
           paddingBottom: 8,
           paddingTop: 8,
           height: 65,
         },
-        tabBarActiveTintColor:   Colors.primary[500],
-        tabBarInactiveTintColor: Colors.slate[500],
+        tabBarActiveTintColor:   isEnterprise ? E.gold              : Colors.primary[500],
+        tabBarInactiveTintColor: isEnterprise ? E.textMuted         : Colors.slate[500],
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
@@ -64,6 +66,19 @@ export default function TabLayout() {
             <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
+      />
+      <Tabs.Screen
+        name="team"
+        options={
+          isEnterprise
+            ? {
+                title: 'Team',
+                tabBarIcon: ({ color, size }) => (
+                  <Ionicons name="people-circle-outline" size={size} color={color} />
+                ),
+              }
+            : { href: null } // hidden in consumer build
+        }
       />
     </Tabs>
   );

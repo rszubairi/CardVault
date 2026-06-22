@@ -215,6 +215,57 @@ export default defineSchema({
     .index('by_published', ['isPublished'])
     .index('by_version',   ['version']),
 
+  // ─── Organization Permission Policies ────────────────────────────────────
+  // Org-wide defaults. Per-user overrides live in organizationUserPolicies.
+  organizationPolicies: defineTable({
+    organizationId:     v.id('organizations'),
+    // Which roles these defaults apply to (e.g. ['member', 'read_only'])
+    appliesToRoles:     v.array(v.string()),
+    canExportContacts:  v.boolean(),
+    canDeleteContacts:  v.boolean(),
+    canScanCards:       v.boolean(),
+    canViewAllContacts: v.boolean(),
+    canEditContacts:    v.boolean(),
+    updatedAt:          v.number(),
+  })
+    .index('by_org', ['organizationId']),
+
+  // Per-user overrides on top of org policy; null = inherit
+  organizationUserPolicies: defineTable({
+    organizationId:     v.id('organizations'),
+    userId:             v.id('users'),
+    canExportContacts:  v.optional(v.boolean()),
+    canDeleteContacts:  v.optional(v.boolean()),
+    canScanCards:       v.optional(v.boolean()),
+    canViewAllContacts: v.optional(v.boolean()),
+    canEditContacts:    v.optional(v.boolean()),
+    updatedAt:          v.number(),
+  })
+    .index('by_org',      ['organizationId'])
+    .index('by_org_user', ['organizationId', 'userId']),
+
+  // ─── Audit Log ────────────────────────────────────────────────────────────
+  auditLog: defineTable({
+    organizationId: v.id('organizations'),
+    actorUserId:    v.id('users'),
+    targetUserId:   v.optional(v.id('users')),
+    action:         v.union(
+      v.literal('member_invited'),
+      v.literal('member_removed'),
+      v.literal('member_role_changed'),
+      v.literal('policy_updated'),
+      v.literal('contact_exported'),
+      v.literal('contact_deleted'),
+      v.literal('contact_scanned'),
+      v.literal('contact_edited'),
+    ),
+    metadata:       v.optional(v.any()),
+    timestamp:      v.number(),
+  })
+    .index('by_org',    ['organizationId'])
+    .index('by_org_ts', ['organizationId', 'timestamp'])
+    .index('by_actor',  ['actorUserId']),
+
   // ─── Company Cache ────────────────────────────────────────────────────────
   companyCache: defineTable({
     domain:       v.string(),

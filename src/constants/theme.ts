@@ -11,6 +11,28 @@ export const Colors = {
     800: '#3730A3',
     900: '#312E81',
   },
+  // Enterprise — classic gold for the Teams / premium build
+  enterprise: {
+    50:  '#FDFBF0',
+    100: '#FAF4D3',
+    200: '#F5E6A3',
+    300: '#EDD070',
+    400: '#E4BB45',
+    500: '#D4AF37',  // classic gold
+    600: '#B8960C',
+    700: '#9A7D0A',
+    800: '#7D6408',
+    900: '#614E06',
+  },
+  // Warm-black surfaces for enterprise
+  enterpriseSurface: {
+    950: '#07060200',
+    900: '#0A0905',
+    800: '#141209',
+    700: '#1E1B0E',
+    600: '#2A2410',
+    500: '#3D3518',
+  },
   surface: {
     900: '#0F172A',
     800: '#1E293B',
