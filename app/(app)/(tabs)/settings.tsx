@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +32,8 @@ import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import { useSettingsStore } from '../../../src/stores/settingsStore';
 import { syncAllToDevice, hasBeenSynced } from '../../../src/lib/deviceContacts';
+import { generateSalt, hashPIN, deriveKey } from '../../../src/lib/encryption';
+import Constants from 'expo-constants';
 
 type SettingRow = {
   icon: string;
@@ -78,14 +81,78 @@ const LOCK_TIMEOUT_OPTIONS = [
   { label: '5 minutes',   seconds: 300 },
 ];
 
+// ─── PIN change modal ─────────────────────────────────────────────────────────
+
+const PIN_LEN = 6;
+const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','','0','del'];
+
+function PinDots({ pin }: { pin: string }) {
+  return (
+    <View className="flex-row gap-x-3 my-4 justify-center">
+      {Array.from({ length: PIN_LEN }).map((_, i) => (
+        <View
+          key={i}
+          className={`w-3 h-3 rounded-full border-2 ${
+            i < pin.length ? 'bg-primary-500 border-primary-500' : 'bg-transparent border-slate-500'
+          }`}
+        />
+      ))}
+    </View>
+  );
+}
+
+function NumPad({ onPress }: { onPress: (k: string) => void }) {
+  return (
+    <View className="w-full max-w-xs self-center">
+      {[0, 1, 2, 3].map((row) => (
+        <View key={row} className="flex-row justify-between mb-3">
+          {NUMPAD_KEYS.slice(row * 3, row * 3 + 3).map((key, col) => (
+            <TouchableOpacity
+              key={col}
+              onPress={() => key && onPress(key)}
+              disabled={!key}
+              className={`w-20 h-14 rounded-2xl items-center justify-center ${
+                key ? 'bg-surface-700' : 'opacity-0'
+              }`}
+            >
+              {key === 'del' ? (
+                <Ionicons name="backspace-outline" size={22} color="#e2e8f0" />
+              ) : (
+                <Text className="text-slate-100 text-xl font-semibold">{key}</Text>
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, token, signOut, setUser } = useAuthStore();
   const { plan, scanCount, scanLimit } = useSubscriptionStore();
-  const { biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout } = useSecurityStore();
+  const {
+    biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout,
+    encryptionEnabled, pinConfigured, setEncryptionKey, setEncryptionEnabled, setPinConfigured,
+  } = useSecurityStore();
   const { syncToPhone, setSyncToPhone } = useSettingsStore();
   const allContacts = useQuery(api.contacts.list, user?._id ? { userId: user._id } : 'skip');
   const updateProfile = useMutation(api.users.updateProfile);
+  const setupPINMutation = useMutation(api.users.setupPIN);
+  const changePINMutation = useMutation(api.users.changePIN);
+  const disableEncryptionMutation = useMutation(api.users.disableEncryption);
+  const clearEncryptedPayloadsMutation = useMutation(api.contacts.clearEncryptedPayloads);
+  const encryptionConfig = useQuery(
+    api.users.getEncryptionConfig,
+    user?._id ? { userId: user._id as any } : 'skip',
+  );
+  const isAdmin = useQuery(
+    api.releases.checkIsAdmin,
+    user?._id ? { userId: user._id as any } : 'skip',
+  );
   const convexUser = useQuery(api.users.getById, user?._id ? { userId: user._id as any } : 'skip');
   const [darkMode, setDarkMode] = React.useState(true);
   const [notifications, setNotifications] = React.useState(true);
@@ -94,6 +161,195 @@ export default function SettingsScreen() {
 
   const [phone, setPhone] = React.useState('');
   const [linkedinHandle, setLinkedinHandle] = React.useState('');
+
+  // PIN modal state
+  type PinModalMode = 'change-old' | 'change-new' | 'change-confirm' | 'enable-new' | 'enable-confirm' | 'disable';
+  const [pinModalVisible, setPinModalVisible] = React.useState(false);
+  const [pinModalMode, setPinModalMode] = React.useState<PinModalMode>('change-old');
+  const [pinModalTitle, setPinModalTitle] = React.useState('');
+  const [pinInput, setPinInput] = React.useState('');
+  const [pinOldHash, setPinOldHash] = React.useState('');
+  const [pinFirstNew, setPinFirstNew] = React.useState('');
+  const [pinLoading, setPinLoading] = React.useState(false);
+
+  // Sync encryptionEnabled from server config on load
+  React.useEffect(() => {
+    if (encryptionConfig) {
+      setEncryptionEnabled(encryptionConfig.encryptionEnabled);
+      setPinConfigured(!!encryptionConfig.pinHash);
+    }
+  }, [encryptionConfig]);
+
+  const pinKey = (key: string) => {
+    if (key === 'del') { setPinInput((p) => p.slice(0, -1)); return; }
+    if (pinInput.length >= PIN_LEN) return;
+    const next = pinInput + key;
+    setPinInput(next);
+    if (next.length === PIN_LEN) setTimeout(() => handlePinComplete(next), 150);
+  };
+
+  const handlePinComplete = async (pin: string) => {
+    if (!user?._id || !encryptionConfig) return;
+
+    if (pinModalMode === 'change-old') {
+      const hash = await hashPIN(pin, encryptionConfig.pinSalt!);
+      if (hash !== encryptionConfig.pinHash) {
+        Alert.alert('Incorrect PIN', 'The current PIN you entered is wrong.');
+        setPinInput('');
+        return;
+      }
+      setPinOldHash(hash);
+      setPinInput('');
+      setPinModalMode('change-new');
+      setPinModalTitle('Enter New PIN');
+      return;
+    }
+
+    if (pinModalMode === 'change-new') {
+      setPinFirstNew(pin);
+      setPinInput('');
+      setPinModalMode('change-confirm');
+      setPinModalTitle('Confirm New PIN');
+      return;
+    }
+
+    if (pinModalMode === 'change-confirm') {
+      if (pin !== pinFirstNew) {
+        Alert.alert('PINs do not match', 'Please try again.');
+        setPinInput('');
+        setPinModalMode('change-new');
+        setPinModalTitle('Enter New PIN');
+        return;
+      }
+      setPinLoading(true);
+      try {
+        const newPinSalt        = generateSalt(16);
+        const newEncryptionSalt = generateSalt(32);
+        const newPinHash        = await hashPIN(pin, newPinSalt);
+        const newKey            = await deriveKey(pin, newEncryptionSalt);
+        await changePINMutation({
+          userId:            user._id as any,
+          oldPinHash:        pinOldHash,
+          newPinHash,
+          newPinSalt,
+          newEncryptionSalt,
+        });
+        setEncryptionKey(newKey);
+        setPinModalVisible(false);
+        Alert.alert('PIN Updated', 'Your PIN has been changed. Your contacts will re-encrypt on next save.');
+      } catch {
+        Alert.alert('Error', 'Could not update PIN. Please try again.');
+      } finally {
+        setPinLoading(false);
+        setPinInput('');
+      }
+      return;
+    }
+
+    if (pinModalMode === 'enable-new') {
+      setPinFirstNew(pin);
+      setPinInput('');
+      setPinModalMode('enable-confirm');
+      setPinModalTitle('Confirm PIN');
+      return;
+    }
+
+    if (pinModalMode === 'enable-confirm') {
+      if (pin !== pinFirstNew) {
+        Alert.alert('PINs do not match', 'Please try again.');
+        setPinInput('');
+        setPinModalMode('enable-new');
+        setPinModalTitle('Create PIN');
+        return;
+      }
+      setPinLoading(true);
+      try {
+        const pinSalt        = generateSalt(16);
+        const encryptionSalt = generateSalt(32);
+        const newPinHash     = await hashPIN(pin, pinSalt);
+        const key            = await deriveKey(pin, encryptionSalt);
+        await setupPINMutation({
+          userId: user._id as any,
+          pinHash: newPinHash,
+          pinSalt,
+          encryptionSalt,
+        });
+        setEncryptionKey(key);
+        setEncryptionEnabled(true);
+        setPinConfigured(true);
+        setPinModalVisible(false);
+        Alert.alert('Encryption Enabled', 'Your contacts will now be encrypted with your PIN.');
+      } catch {
+        Alert.alert('Error', 'Could not enable encryption. Please try again.');
+      } finally {
+        setPinLoading(false);
+        setPinInput('');
+      }
+      return;
+    }
+
+    if (pinModalMode === 'disable') {
+      const hash = await hashPIN(pin, encryptionConfig.pinSalt!);
+      if (hash !== encryptionConfig.pinHash) {
+        Alert.alert('Incorrect PIN', 'The PIN you entered is wrong.');
+        setPinInput('');
+        return;
+      }
+      setPinLoading(true);
+      try {
+        await disableEncryptionMutation({ userId: user._id as any, pinHash: hash });
+        await clearEncryptedPayloadsMutation({ userId: user._id as any });
+        setEncryptionKey(null);
+        setEncryptionEnabled(false);
+        setPinConfigured(false);
+        setPinModalVisible(false);
+        Alert.alert('Encryption Disabled', 'Contact data is no longer encrypted.');
+      } catch {
+        Alert.alert('Error', 'Could not disable encryption. Please try again.');
+      } finally {
+        setPinLoading(false);
+        setPinInput('');
+      }
+      return;
+    }
+  };
+
+  const openChangePIN = () => {
+    setPinInput('');
+    setPinOldHash('');
+    setPinFirstNew('');
+    setPinModalMode('change-old');
+    setPinModalTitle('Enter Current PIN');
+    setPinModalVisible(true);
+  };
+
+  const openEnableEncryption = () => {
+    setPinInput('');
+    setPinFirstNew('');
+    setPinModalMode('enable-new');
+    setPinModalTitle('Create PIN');
+    setPinModalVisible(true);
+  };
+
+  const openDisableEncryption = () => {
+    Alert.alert(
+      'Disable Encryption',
+      'This will remove encryption from all your contacts. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Disable',
+          style: 'destructive',
+          onPress: () => {
+            setPinInput('');
+            setPinModalMode('disable');
+            setPinModalTitle('Enter PIN to Confirm');
+            setPinModalVisible(true);
+          },
+        },
+      ],
+    );
+  };
 
   // Populate fields once Convex data loads
   React.useEffect(() => {
@@ -203,6 +459,35 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
+      {/* PIN entry modal */}
+      <Modal
+        visible={pinModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { if (!pinLoading) setPinModalVisible(false); }}
+      >
+        <View className="flex-1 bg-surface-900 px-6 pt-12">
+          <View className="flex-row items-center mb-8">
+            <TouchableOpacity onPress={() => { if (!pinLoading) setPinModalVisible(false); }}>
+              <Ionicons name="close" size={24} color="#94a3b8" />
+            </TouchableOpacity>
+            <Text className="text-slate-50 text-xl font-semibold ml-4">{pinModalTitle}</Text>
+          </View>
+
+          {pinLoading ? (
+            <View className="flex-1 items-center justify-center">
+              <ActivityIndicator size="large" color="#6366F1" />
+              <Text className="text-slate-400 mt-4">Updating encryption…</Text>
+            </View>
+          ) : (
+            <>
+              <PinDots pin={pinInput} />
+              <NumPad onPress={pinKey} />
+            </>
+          )}
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Profile */}
         <View className="px-5 pt-6 pb-5">
@@ -370,6 +655,55 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
+        {/* Data Encryption */}
+        <View className="mb-6">
+          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+            Data Encryption
+          </Text>
+          <Card variant="outlined" className="mx-5">
+            <View className="px-5 py-4 border-b border-surface-700/50 flex-row items-center">
+              <Ionicons name="shield-checkmark-outline" size={20} color="#6366F1" />
+              <View className="flex-1 ml-4">
+                <Text className="text-slate-200 text-base">Contact Encryption</Text>
+                <Text className="text-slate-500 text-xs mt-0.5">
+                  {encryptionEnabled
+                    ? 'Enabled — sensitive fields are encrypted with your PIN'
+                    : 'Disabled — contacts stored in plain text'}
+                </Text>
+              </View>
+              <View className={`px-2 py-0.5 rounded-full ${encryptionEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>
+                <Text className={`text-xs font-medium ${encryptionEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+                  {encryptionEnabled ? 'ON' : 'OFF'}
+                </Text>
+              </View>
+            </View>
+
+            {!encryptionEnabled && (
+              <Row
+                icon="lock-closed-outline"
+                label="Enable Encryption"
+                onPress={openEnableEncryption}
+              />
+            )}
+
+            {encryptionEnabled && (
+              <>
+                <Row
+                  icon="key-outline"
+                  label="Change PIN"
+                  onPress={openChangePIN}
+                />
+                <Row
+                  icon="lock-open-outline"
+                  label="Disable Encryption"
+                  onPress={openDisableEncryption}
+                  danger
+                />
+              </>
+            )}
+          </Card>
+        </View>
+
         {/* Organization */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
@@ -392,6 +726,31 @@ export default function SettingsScreen() {
             <Row icon="sync-outline"         label="Sync Status"     value="Synced" onPress={() => {}} />
           </Card>
         </View>
+
+        {/* Super Admin */}
+        {isAdmin && (
+          <View className="mb-6">
+            <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+              Super Admin
+            </Text>
+            <Card variant="outlined" className="mx-5">
+              <View className="px-5 py-3 border-b border-surface-700/50">
+                <View className="flex-row items-center gap-x-2">
+                  <View className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <Text className="text-emerald-400 text-xs font-medium">Admin Access Active</Text>
+                </View>
+                <Text className="text-slate-500 text-xs mt-1">
+                  App v{Constants.expoConfig?.version ?? '—'} · {user?.email}
+                </Text>
+              </View>
+              <Row
+                icon="rocket-outline"
+                label="Release Management"
+                onPress={() => router.push('/(app)/admin/releases')}
+              />
+            </Card>
+          </View>
+        )}
 
         {/* Account */}
         <View className="mb-6">

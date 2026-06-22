@@ -16,8 +16,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
+import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSecurityStore } from '../../src/stores/securityStore';
+import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { syncAllToDevice, hasBeenSynced } from '../../src/lib/deviceContacts';
@@ -28,6 +31,8 @@ import {
   authenticate,
 } from '../../src/lib/biometric';
 import { hapticSuccess, hapticError } from '../../src/lib/haptics';
+import { isNewerVersion } from '../../src/lib/versionUtils';
+import UpdateModal from '../../src/components/UpdateModal';
 
 // â”€â”€â”€ Lock Screen Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -227,6 +232,50 @@ function SecurityProvider({ children }: { children: React.ReactNode }) {
 
 // â”€â”€â”€ App Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+// ─── Update check ────────────────────────────────────────────────────────────
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+const SKIPPED_VERSION_KEY = 'skippedUpdateVersion';
+
+function UpdateProvider() {
+  const { user } = useAuthStore();
+  const { plan } = useSubscriptionStore();
+  const [dismissed, setDismissed] = useState(false);
+  const [skippedVersion, setSkippedVersion] = useState<string | null>(null);
+
+  const edition: 'personal' | 'enterprise' = plan === 'enterprise' ? 'enterprise' : 'personal';
+  const platform: 'ios' | 'android' = Platform.OS === 'ios' ? 'ios' : 'android';
+
+  const latestRelease = useQuery(
+    api.releases.getLatestRelease,
+    Platform.OS === 'web' || !user ? 'skip' : { platform, edition },
+  );
+
+  useEffect(() => {
+    SecureStore.getItemAsync(SKIPPED_VERSION_KEY)
+      .then((v) => setSkippedVersion(v))
+      .catch(() => {});
+  }, []);
+
+  if (!latestRelease || dismissed) return null;
+  if (!isNewerVersion(latestRelease.version, APP_VERSION)) return null;
+  if (latestRelease.releaseType === 'minor' && skippedVersion === latestRelease.version) return null;
+
+  return (
+    <UpdateModal
+      release={latestRelease}
+      onSkip={() => setDismissed(true)}
+      onSkipVersion={async () => {
+        await SecureStore.setItemAsync(SKIPPED_VERSION_KEY, latestRelease.version).catch(() => {});
+        setSkippedVersion(latestRelease.version);
+        setDismissed(true);
+      }}
+    />
+  );
+}
+
+// ─── Contact sync ─────────────────────────────────────────────────────────────
+
 function ContactSyncProvider() {
   const { user } = useAuthStore();
   const { syncToPhone, loaded, loadSettings } = useSettingsStore();
@@ -262,8 +311,10 @@ export default function AppLayout() {
   return (
     <SecurityProvider>
       <ContactSyncProvider />
+      <UpdateProvider />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="admin" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen
           name="contact/[id]"
           options={{ animation: 'slide_from_right' }}

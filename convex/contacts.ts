@@ -65,9 +65,10 @@ export const create = mutation({
       v.literal('scan'), v.literal('manual'),
       v.literal('import'), v.literal('shared'),
     ),
-    ocrConfidence:v.optional(v.number()),
-    organizationId: v.optional(v.id('organizations')),
-    isShared:     v.boolean(),
+    ocrConfidence:    v.optional(v.number()),
+    organizationId:   v.optional(v.id('organizations')),
+    isShared:         v.boolean(),
+    encryptedPayload: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const contactId = await ctx.db.insert('contacts', {
@@ -116,9 +117,10 @@ export const update = mutation({
     linkedinUrl: v.optional(v.string()),
     companyLogo: v.optional(v.string()),
     tags:        v.optional(v.array(v.string())),
-    favorite:    v.optional(v.boolean()),
-    followUpDate:v.optional(v.number()),
-    meetingNotes:v.optional(v.string()),
+    favorite:         v.optional(v.boolean()),
+    followUpDate:     v.optional(v.number()),
+    meetingNotes:     v.optional(v.string()),
+    encryptedPayload: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { contactId, ...updates } = args;
@@ -133,6 +135,31 @@ export const remove = mutation({
   args: { contactId: v.id('contacts') },
   handler: async (ctx, args) => {
     await ctx.db.delete(args.contactId);
+  },
+});
+
+export const updateEncryptedPayload = mutation({
+  args: {
+    contactId:        v.id('contacts'),
+    encryptedPayload: v.optional(v.string()),
+  },
+  handler: async (ctx, { contactId, encryptedPayload }) => {
+    await ctx.db.patch(contactId, { encryptedPayload, updatedAt: Date.now() });
+  },
+});
+
+export const clearEncryptedPayloads = mutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const contacts = await ctx.db
+      .query('contacts')
+      .withIndex('by_user', (q) => q.eq('userId', userId))
+      .collect();
+    for (const contact of contacts) {
+      if (contact.encryptedPayload) {
+        await ctx.db.patch(contact._id, { encryptedPayload: undefined, updatedAt: Date.now() });
+      }
+    }
   },
 });
 

@@ -53,6 +53,77 @@ export const updatePushToken = mutation({
   },
 });
 
+export const getEncryptionConfig = query({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user) return null;
+    return {
+      encryptionEnabled: user.encryptionEnabled ?? false,
+      encryptionSalt:    user.encryptionSalt,
+      pinHash:           user.pinHash,
+      pinSalt:           user.pinSalt,
+    };
+  },
+});
+
+export const setupPIN = mutation({
+  args: {
+    userId:         v.id('users'),
+    pinHash:        v.string(),
+    pinSalt:        v.string(),
+    encryptionSalt: v.string(),
+  },
+  handler: async (ctx, { userId, pinHash, pinSalt, encryptionSalt }) => {
+    await ctx.db.patch(userId, {
+      pinHash,
+      pinSalt,
+      encryptionSalt,
+      encryptionEnabled: true,
+    });
+  },
+});
+
+export const changePIN = mutation({
+  args: {
+    userId:            v.id('users'),
+    oldPinHash:        v.string(),
+    newPinHash:        v.string(),
+    newPinSalt:        v.string(),
+    newEncryptionSalt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.pinHash !== args.oldPinHash) {
+      throw new Error('Invalid PIN');
+    }
+    await ctx.db.patch(args.userId, {
+      pinHash:        args.newPinHash,
+      pinSalt:        args.newPinSalt,
+      encryptionSalt: args.newEncryptionSalt,
+    });
+  },
+});
+
+export const disableEncryption = mutation({
+  args: {
+    userId:  v.id('users'),
+    pinHash: v.string(),
+  },
+  handler: async (ctx, { userId, pinHash }) => {
+    const user = await ctx.db.get(userId);
+    if (!user || user.pinHash !== pinHash) {
+      throw new Error('Invalid PIN');
+    }
+    await ctx.db.patch(userId, {
+      encryptionEnabled: false,
+      pinHash:           undefined,
+      pinSalt:           undefined,
+      encryptionSalt:    undefined,
+    });
+  },
+});
+
 export const updateProfile = mutation({
   args: {
     userId:      v.id('users'),

@@ -19,6 +19,7 @@ import type * as notes from "../notes.js";
 import type * as notifications from "../notifications.js";
 import type * as ocr from "../ocr.js";
 import type * as organizations from "../organizations.js";
+import type * as releases from "../releases.js";
 import type * as subscriptions from "../subscriptions.js";
 import type * as users from "../users.js";
 
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   ocr: typeof ocr;
   organizations: typeof organizations;
+  releases: typeof releases;
   subscriptions: typeof subscriptions;
   users: typeof users;
 }>;

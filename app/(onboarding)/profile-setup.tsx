@@ -28,9 +28,9 @@ export default function ProfileSetupScreen() {
         phone: phone.trim() || undefined,
         linkedinUrl: linkedin.trim() ? `https://www.linkedin.com/in/${linkedin.trim()}` : undefined,
       });
-      router.replace('/(app)/(tabs)');
+      router.replace('/(onboarding)/pin-setup');
     } catch {
-      router.replace('/(app)/(tabs)');
+      router.replace('/(onboarding)/pin-setup');
     } finally {
       setLoading(false);
     }

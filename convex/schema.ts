@@ -4,17 +4,22 @@ import { v } from 'convex/values';
 export default defineSchema({
   // ─── Users ────────────────────────────────────────────────────────────────
   users: defineTable({
-    name:         v.string(),
-    email:        v.string(),
-    phone:        v.optional(v.string()),
-    linkedinUrl:  v.optional(v.string()),
-    company:      v.optional(v.string()),
-    designation:  v.optional(v.string()),
-    profilePhoto: v.optional(v.string()),
-    authProvider: v.union(v.literal('google'), v.literal('linkedin')),
-    externalId:   v.string(),
-    pushToken:    v.optional(v.string()),
-    createdAt:    v.number(),
+    name:              v.string(),
+    email:             v.string(),
+    phone:             v.optional(v.string()),
+    linkedinUrl:       v.optional(v.string()),
+    company:           v.optional(v.string()),
+    designation:       v.optional(v.string()),
+    profilePhoto:      v.optional(v.string()),
+    authProvider:      v.union(v.literal('google'), v.literal('linkedin')),
+    externalId:        v.string(),
+    pushToken:         v.optional(v.string()),
+    createdAt:         v.number(),
+    // Encryption
+    encryptionEnabled: v.optional(v.boolean()),
+    encryptionSalt:    v.optional(v.string()), // random salt for PBKDF2 key derivation
+    pinHash:           v.optional(v.string()), // SHA-256(pin + pinSalt) for verification
+    pinSalt:           v.optional(v.string()), // salt for PIN hash
   })
     .index('by_email',      ['email'])
     .index('by_externalId', ['externalId']),
@@ -138,6 +143,9 @@ export default defineSchema({
     isShared:   v.boolean(),
     sharedBy:   v.optional(v.id('users')),
 
+    // Client-side encryption: base64(IV):base64(ciphertext) of sensitive fields JSON
+    encryptedPayload: v.optional(v.string()),
+
     createdAt:  v.number(),
     updatedAt:  v.number(),
   })
@@ -189,6 +197,23 @@ export default defineSchema({
     .index('by_contact',   ['contactId'])
     .index('by_user',      ['userId'])
     .index('by_timestamp', ['timestamp']),
+
+  // ─── App Releases ─────────────────────────────────────────────────────────
+  appReleases: defineTable({
+    version:      v.string(),   // semver e.g. "1.2.0"
+    releaseType:  v.union(v.literal('major'), v.literal('minor')),
+    platform:     v.union(v.literal('ios'), v.literal('android'), v.literal('both')),
+    edition:      v.union(v.literal('personal'), v.literal('enterprise'), v.literal('all')),
+    releaseNotes: v.string(),
+    iosUrl:       v.optional(v.string()),
+    androidUrl:   v.optional(v.string()),
+    isPublished:  v.boolean(),
+    publishedAt:  v.optional(v.number()),
+    createdAt:    v.number(),
+    createdBy:    v.optional(v.string()),
+  })
+    .index('by_published', ['isPublished'])
+    .index('by_version',   ['version']),
 
   // ─── Company Cache ────────────────────────────────────────────────────────
   companyCache: defineTable({
