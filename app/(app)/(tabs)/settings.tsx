@@ -28,7 +28,6 @@ import {
   type BiometricType,
 } from '../../../src/lib/biometric';
 import { clearSession } from '../../../src/lib/auth';
-import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import { useSettingsStore } from '../../../src/stores/settingsStore';
 import { useLanguageStore } from '../../../src/stores/languageStore';
@@ -52,6 +51,20 @@ type SettingRow = {
   danger?: boolean;
   accent: string;
 };
+
+function SettingsCard({ children, style }: { children: React.ReactNode; style?: any }) {
+  const theme = useAppTheme();
+  return (
+    <View
+      style={[
+        { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border, overflow: 'hidden' },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress, danger, accent }: SettingRow) {
   const theme = useAppTheme();
@@ -90,6 +103,7 @@ const PIN_LEN = 6;
 const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','','0','del'];
 
 function PinDots({ pin, accent }: { pin: string; accent: string }) {
+  const theme = useAppTheme();
   return (
     <View className="flex-row gap-x-3 my-4 justify-center">
       {Array.from({ length: PIN_LEN }).map((_, i) => (
@@ -98,7 +112,7 @@ function PinDots({ pin, accent }: { pin: string; accent: string }) {
           className="w-3 h-3 rounded-full border-2"
           style={i < pin.length
             ? { backgroundColor: accent, borderColor: accent }
-            : { backgroundColor: 'transparent', borderColor: '#64748B' }
+            : { backgroundColor: 'transparent', borderColor: theme.border }
           }
         />
       ))}
@@ -556,7 +570,7 @@ export default function SettingsScreen() {
         {/* Profile */}
         <View className="px-5 pt-6 pb-5">
           <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700', marginBottom: 20 }}>{t.settings}</Text>
-          <Card className="p-4 flex-row items-center">
+          <SettingsCard style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
             <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: theme.accent + "30" }}>
               <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "bold" }}>
                 {user?.name?.[0]?.toUpperCase() ?? 'U'}
@@ -569,7 +583,7 @@ export default function SettingsScreen() {
               <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 2 }}>{user?.email ?? ''}</Text>
             </View>
             <Badge label={planLabel} variant={plan === 'free' ? 'neutral' : 'primary'} />
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Profile Details */}
@@ -577,56 +591,56 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             {t.profile}
           </Text>
-          <Card variant="outlined" className="p-4 gap-y-4">
+          <SettingsCard style={{ padding: 16, gap: 16 }}>
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.email}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.email}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="mail-outline" size={16} color={theme.accent} />
-                <Text className="text-slate-400 ml-2 text-sm flex-1">{user?.email}</Text>
+                <Text style={{ color: theme.textSecondary, marginLeft: 8, fontSize: 14, flex: 1 }}>{user?.email}</Text>
               </View>
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.phoneNumber}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.phoneNumber}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="call-outline" size={16} color={theme.accent} />
                 <TextInput
                   value={phone}
                   onChangeText={setPhone}
                   placeholder={t.addPhoneNumber}
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={theme.textMuted}
                   keyboardType="phone-pad"
                   className="flex-1 ml-2 text-sm"
-                  style={{ color: '#e2e8f0' }}
+                  style={{ color: theme.textPrimary }}
                 />
               </View>
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.linkedinProfile}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.linkedinProfile}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="logo-linkedin" size={16} color="#0A66C2" />
-                <Text className="text-slate-500 ml-2 text-sm">linkedin.com/in/</Text>
+                <Text style={{ color: theme.textMuted, marginLeft: 8, fontSize: 14 }}>linkedin.com/in/</Text>
                 <TextInput
                   value={linkedinHandle}
                   onChangeText={setLinkedinHandle}
                   placeholder="yourname"
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
                   className="flex-1 text-sm"
-                  style={{ color: '#e2e8f0' }}
+                  style={{ color: theme.textPrimary }}
                 />
               </View>
             </View>
 
             {convexUser?.corporateEmail && (
               <View>
-                <Text className="text-slate-400 text-xs mb-1 ml-1">Corporate Email</Text>
-                <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>Corporate Email</Text>
+                <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                   <Ionicons name="briefcase-outline" size={16} color={theme.accent} />
-                  <Text className="text-slate-300 ml-2 text-sm flex-1">{convexUser.corporateEmail}</Text>
+                  <Text style={{ color: theme.textPrimary, marginLeft: 8, fontSize: 14, flex: 1 }}>{convexUser.corporateEmail}</Text>
                   <View style={{ backgroundColor: theme.accent + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
                     <Text style={{ color: theme.accent, fontSize: 10, fontWeight: '700' }}>ENTERPRISE</Text>
                   </View>
@@ -644,7 +658,7 @@ export default function SettingsScreen() {
                 : <Text className="text-white text-sm font-semibold">{t.saveProfile}</Text>
               }
             </TouchableOpacity>
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Subscription */}
@@ -652,7 +666,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.subscription}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="flash-outline"
               label={t.currentPlan}
@@ -678,7 +692,7 @@ export default function SettingsScreen() {
                 accent={theme.accent}
               />
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Preferences */}
@@ -686,7 +700,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.preferences}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="moon-outline"
               label="Appearance"
@@ -717,7 +731,7 @@ export default function SettingsScreen() {
               onPress={() => setLanguageModalVisible(true)}
             accent={theme.accent}
               />
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Security */}
@@ -725,7 +739,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.security}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="finger-print-outline"
               label={biometricAvailable ? `${biometricType} Lock` : t.biometricLock}
@@ -743,7 +757,7 @@ export default function SettingsScreen() {
               accent={theme.accent}
               />
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Data Encryption */}
@@ -751,17 +765,26 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.dataEncryption}
           </Text>
-          <Card variant="outlined" className="mx-5">
-            <View className="px-5 py-4 border-b border-surface-700/50 flex-row items-center">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
+            <View
+              style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border, flexDirection: 'row', alignItems: 'center' }}
+            >
               <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
               <View className="flex-1 ml-4">
-                <Text className="text-slate-200 text-base">{t.contactEncryption}</Text>
-                <Text className="text-slate-500 text-xs mt-0.5">
+                <Text style={{ color: theme.textPrimary, fontSize: 16 }}>{t.contactEncryption}</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>
                   {encryptionEnabled ? t.encryptionEnabledDesc : t.encryptionDisabledDesc}
                 </Text>
               </View>
-              <View className={`px-2 py-0.5 rounded-full ${encryptionEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>
-                <Text className={`text-xs font-medium ${encryptionEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: encryptionEnabled ? theme.success + '20' : theme.surfaceAlt,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '500', color: encryptionEnabled ? theme.success : theme.textMuted }}>
                   {encryptionEnabled ? t.on : t.off}
                 </Text>
               </View>
@@ -793,7 +816,7 @@ export default function SettingsScreen() {
               />
               </>
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Organization — enterprise build only */}
@@ -802,10 +825,10 @@ export default function SettingsScreen() {
             <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
               {t.organization}
             </Text>
-            <Card variant="outlined" className="mx-5">
+            <SettingsCard style={{ marginHorizontal: 20 }}>
               <Row icon="business-outline" label={t.myOrganization} onPress={() => router.push('/(app)/org/')} accent={theme.accent} />
               <Row icon="people-outline"   label={t.followUps}      onPress={() => router.push('/(app)/follow-ups')} accent={theme.accent} />
-            </Card>
+            </SettingsCard>
           </View>
         )}
 
@@ -814,14 +837,14 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.data}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row icon="download-outline"     label={t.exportContacts} onPress={() => router.push('/(app)/export')} accent={theme.accent}
               />
             <Row icon="cloud-upload-outline" label={t.importContacts} onPress={() => router.push('/(app)/import')} accent={theme.accent}
               />
             <Row icon="sync-outline"         label={t.syncStatus}     value={t.synced} onPress={() => {}} accent={theme.accent}
               />
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Super Admin */}
@@ -830,13 +853,13 @@ export default function SettingsScreen() {
             <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
               {t.superAdmin}
             </Text>
-            <Card variant="outlined" className="mx-5">
-              <View className="px-5 py-3 border-b border-surface-700/50">
+            <SettingsCard style={{ marginHorizontal: 20 }}>
+              <View style={{ paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
                 <View className="flex-row items-center gap-x-2">
-                  <View className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <Text className="text-emerald-400 text-xs font-medium">{t.adminAccessActive}</Text>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.success }} />
+                  <Text style={{ color: theme.success, fontSize: 12, fontWeight: '500' }}>{t.adminAccessActive}</Text>
                 </View>
-                <Text className="text-slate-500 text-xs mt-1">
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
                   App v{Constants.expoConfig?.version ?? '—'} · {user?.email}
                 </Text>
               </View>
@@ -846,7 +869,7 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/(app)/admin/releases')}
               accent={theme.accent}
               />
-            </Card>
+            </SettingsCard>
           </View>
         )}
 
@@ -855,7 +878,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.account}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row icon="shield-outline"             label={t.privacyPolicy} onPress={() => router.push('/(app)/privacy')} accent={theme.accent}
               />
             <Row icon="information-circle-outline" label={t.about}         value="v1.0.0" onPress={() => {}} accent={theme.accent}
@@ -867,7 +890,7 @@ export default function SettingsScreen() {
               danger
             accent={theme.accent}
               />
-          </Card>
+          </SettingsCard>
         </View>
       </ScrollView>
     </SafeAreaView>
