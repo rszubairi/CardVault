@@ -8,6 +8,7 @@ import { api } from '../../../convex/_generated/api';
 import Input from '../../../src/components/ui/Input';
 import Button from '../../../src/components/ui/Button';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 type InviteRole = 'admin' | 'manager' | 'member' | 'read_only';
 
@@ -21,6 +22,7 @@ const ROLES: { value: InviteRole; label: string; desc: string }[] = [
 export default function InviteScreen() {
   const router   = useRouter();
   const { user } = useAuthStore();
+  const theme    = useAppTheme();
   const org      = useQuery(api.organizations.getMyOrg, user ? { userId: user._id } : 'skip');
   const createInvite = useMutation(api.organizations.createInvite);
 
@@ -51,12 +53,12 @@ export default function InviteScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="text-slate-50 text-lg font-bold">Invite Member</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>Invite Member</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
@@ -70,29 +72,31 @@ export default function InviteScreen() {
           autoFocus
         />
 
-        <Text className="text-slate-400 text-xs uppercase tracking-widest mb-3 mt-2">Role</Text>
+        <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12, marginTop: 8 }}>Role</Text>
         {ROLES.map(({ value, label, desc }) => (
           <TouchableOpacity
             key={value}
             onPress={() => setRole(value)}
-            className={`flex-row items-center p-4 rounded-2xl mb-3 border ${
+            style={[
+              { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1 },
               role === value
-                ? 'border-primary-500 bg-primary-900/30'
-                : 'border-surface-700 bg-surface-800'
-            }`}
+                ? { borderColor: theme.accent, backgroundColor: theme.accentFaint }
+                : { borderColor: theme.border, backgroundColor: theme.surface },
+            ]}
           >
             <View
-              className={`w-5 h-5 rounded-full border-2 mr-4 items-center justify-center ${
-                role === value ? 'border-primary-500' : 'border-slate-500'
-              }`}
+              style={[
+                { width: 20, height: 20, borderRadius: 10, borderWidth: 2, marginRight: 16, alignItems: 'center', justifyContent: 'center' },
+                { borderColor: role === value ? theme.accent : theme.textMuted },
+              ]}
             >
               {role === value && (
-                <View className="w-2.5 h-2.5 bg-primary-500 rounded-full" />
+                <View style={{ width: 10, height: 10, backgroundColor: theme.accent, borderRadius: 5 }} />
               )}
             </View>
-            <View className="flex-1">
-              <Text className="text-slate-200 text-sm font-medium">{label}</Text>
-              <Text className="text-slate-500 text-xs mt-0.5">{desc}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '500' }}>{label}</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
             </View>
           </TouchableOpacity>
         ))}

@@ -9,10 +9,12 @@ import Input from '../../../src/components/ui/Input';
 import Button from '../../../src/components/ui/Button';
 import Card from '../../../src/components/ui/Card';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 export default function CreateOrgScreen() {
   const router   = useRouter();
   const { user } = useAuthStore();
+  const theme    = useAppTheme();
   const createOrg = useMutation(api.organizations.create);
 
   const [name,         setName]         = useState('');
@@ -41,24 +43,24 @@ export default function CreateOrgScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="text-slate-50 text-lg font-bold">Create Organization</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>Create Organization</Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        <Card className="p-4 mb-6 border border-primary-700/30 bg-primary-900/20">
-          <View className="flex-row items-start">
-            <Ionicons name="information-circle-outline" size={18} color="#6366F1" />
-            <Text className="text-slate-400 text-sm ml-2 flex-1 leading-5">
+        <View style={{ padding: 16, marginBottom: 24, borderRadius: 12, borderWidth: 1, borderColor: theme.accent + '40', backgroundColor: theme.accentFaint }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <Ionicons name="information-circle-outline" size={18} color={theme.accent} />
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginLeft: 8, flex: 1, lineHeight: 20 }}>
               Creating an organization enables your team to share contacts, collaborate on
               follow-ups, and access a shared CRM. You'll start with a 14-day Enterprise trial.
             </Text>
           </View>
-        </Card>
+        </View>
 
         <Input
           label="Organization Name *"

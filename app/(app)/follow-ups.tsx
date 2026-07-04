@@ -18,10 +18,12 @@ import Card from '../../src/components/ui/Card';
 import Badge from '../../src/components/ui/Badge';
 import { useAuthStore } from '../../src/stores/authStore';
 import { hapticSuccess } from '../../src/lib/haptics';
+import { useAppTheme } from '../../src/theme/useAppTheme';
 
 export default function FollowUpsScreen() {
   const router   = useRouter();
   const { user } = useAuthStore();
+  const theme    = useAppTheme();
 
   const followUps = useQuery(
     api.contacts.getFollowUps,
@@ -58,15 +60,15 @@ export default function FollowUpsScreen() {
     return (
       <Card className="p-4 mb-3">
         <View className="flex-row items-center">
-          <View className="w-11 h-11 bg-primary-800 rounded-full items-center justify-center mr-3">
-            <Text className="text-primary-200 text-sm font-bold">{initials}</Text>
+          <View style={{ width: 44, height: 44, backgroundColor: theme.accentFaint, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+            <Text style={{ color: theme.accent, fontSize: 14, fontWeight: '700' }}>{initials}</Text>
           </View>
           <View className="flex-1">
             <TouchableOpacity onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: contact._id } })}>
-              <Text className="text-slate-200 text-sm font-semibold">{fullName}</Text>
+              <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '600' }}>{fullName}</Text>
             </TouchableOpacity>
             {contact.company && (
-              <Text className="text-slate-500 text-xs mt-0.5">{contact.company}</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{contact.company}</Text>
             )}
           </View>
           <View className="items-end gap-1">
@@ -105,22 +107,22 @@ export default function FollowUpsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="flex-1 text-slate-50 text-lg font-bold">Follow-ups</Text>
+        <Text style={{ flex: 1, color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>Follow-ups</Text>
         {followUps && (
-          <View className="bg-surface-700 px-3 py-1 rounded-full">
-            <Text className="text-slate-400 text-xs">{followUps.length} total</Text>
+          <View style={{ backgroundColor: theme.surfaceAlt, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+            <Text style={{ color: theme.textMuted, fontSize: 12 }}>{followUps.length} total</Text>
           </View>
         )}
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {followUps === undefined && (
-          <ActivityIndicator color="#6366F1" style={{ marginTop: 40 }} />
+          <ActivityIndicator color={theme.accent} style={{ marginTop: 40 }} />
         )}
 
         {followUps?.length === 0 && (

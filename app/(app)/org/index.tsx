@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import Button from '../../../src/components/ui/Button';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 const ROLE_COLORS: Record<string, 'primary' | 'success' | 'warning' | 'neutral' | 'error'> = {
   owner:    'primary',
@@ -36,6 +37,7 @@ const ROLE_LABELS: Record<string, string> = {
 export default function OrgScreen() {
   const router    = useRouter();
   const { user }  = useAuthStore();
+  const theme     = useAppTheme();
   const org       = useQuery(api.organizations.getMyOrg, user ? { userId: user._id } : 'skip');
   const members   = useQuery(
     api.organizations.listMembers,
@@ -52,29 +54,29 @@ export default function OrgScreen() {
 
   if (org === undefined) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center">
-        <ActivityIndicator color="#6366F1" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={theme.accent} />
       </SafeAreaView>
     );
   }
 
   if (org === null) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-        <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4">
-            <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+            <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
           </TouchableOpacity>
-          <Text className="text-slate-50 text-lg font-bold">Organization</Text>
+          <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>Organization</Text>
         </View>
-        <View className="flex-1 items-center justify-center px-8">
-          <View className="w-20 h-20 bg-primary-900/40 rounded-3xl items-center justify-center mb-5">
-            <Ionicons name="business-outline" size={40} color="#6366F1" />
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+          <View style={{ width: 80, height: 80, backgroundColor: theme.accentFaint, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+            <Ionicons name="business-outline" size={40} color={theme.accent} />
           </View>
-          <Text className="text-slate-50 text-xl font-bold mb-2 text-center">
+          <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '700', marginBottom: 8, textAlign: 'center' }}>
             No Organization Yet
           </Text>
-          <Text className="text-slate-400 text-sm text-center mb-8 leading-6">
+          <Text style={{ color: theme.textSecondary, fontSize: 14, textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
             Create an organization to share contacts with your team, collaborate on follow-ups,
             and manage your business network together.
           </Text>
@@ -111,12 +113,12 @@ export default function OrgScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="flex-1 text-slate-50 text-lg font-bold">{org.name}</Text>
+        <Text style={{ flex: 1, color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>{org.name}</Text>
         <Badge label={ROLE_LABELS[org.myRole] ?? 'Member'} variant={ROLE_COLORS[org.myRole] ?? 'neutral'} />
       </View>
 
@@ -124,14 +126,14 @@ export default function OrgScreen() {
         {/* Stats */}
         <View className="flex-row gap-3 mb-6">
           <Card className="flex-1 p-4 items-center">
-            <Text className="text-slate-50 text-2xl font-bold">{members?.length ?? 0}</Text>
-            <Text className="text-slate-400 text-xs mt-1">Members</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>{members?.length ?? 0}</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>Members</Text>
           </Card>
           <Card className="flex-1 p-4 items-center">
-            <Text className="text-slate-50 text-2xl font-bold">
+            <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>
               {duplicates ? duplicates.length : '-'}
             </Text>
-            <Text className="text-slate-400 text-xs mt-1">Duplicates</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>Duplicates</Text>
           </Card>
         </View>
 
@@ -144,28 +146,28 @@ export default function OrgScreen() {
                 {duplicates.length} duplicate contact{duplicates.length > 1 ? 's' : ''} detected
               </Text>
             </View>
-            <Text className="text-slate-400 text-xs mt-1 leading-5">
+            <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 4, lineHeight: 20 }}>
               Multiple team members have contacts with the same email address.
             </Text>
           </Card>
         )}
 
         {/* Members */}
-        <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-slate-400 text-xs uppercase tracking-widest font-semibold">
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, fontWeight: '600' }}>
             Members
           </Text>
           {isOwnerOrAdmin && (
             <TouchableOpacity onPress={() => router.push('/(app)/org/invite')}>
-              <View className="flex-row items-center gap-1">
-                <Ionicons name="add" size={18} color="#6366F1" />
-                <Text className="text-primary-400 text-sm">Invite</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="add" size={18} color={theme.accent} />
+                <Text style={{ color: theme.accent, fontSize: 14 }}>Invite</Text>
               </View>
             </TouchableOpacity>
           )}
         </View>
 
-        {members === undefined && <ActivityIndicator color="#6366F1" />}
+        {members === undefined && <ActivityIndicator color={theme.accent} />}
 
         {members?.map((member) => {
           const isSelf = member.userId === user?._id;
@@ -179,14 +181,14 @@ export default function OrgScreen() {
           return (
             <Card key={member.membershipId} className="p-4 mb-3">
               <View className="flex-row items-center">
-                <View className="w-10 h-10 bg-primary-800 rounded-full items-center justify-center mr-3">
-                  <Text className="text-primary-200 text-sm font-bold">{initials || '?'}</Text>
+                <View style={{ width: 40, height: 40, backgroundColor: theme.accentFaint, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Text style={{ color: theme.accent, fontSize: 14, fontWeight: '700' }}>{initials || '?'}</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-slate-200 text-sm font-medium">
+                  <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '500' }}>
                     {member.name} {isSelf ? '(you)' : ''}
                   </Text>
-                  <Text className="text-slate-500 text-xs mt-0.5">{member.email}</Text>
+                  <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{member.email}</Text>
                 </View>
                 <Badge
                   label={ROLE_LABELS[member.role] ?? member.role}
@@ -195,7 +197,7 @@ export default function OrgScreen() {
               </View>
 
               {(isOwnerOrAdmin && !isSelf && member.role !== 'owner') && (
-                <View className="flex-row gap-2 mt-3 pt-3 border-t border-surface-700">
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: theme.border }}>
                   {(['admin', 'manager', 'member', 'read_only'] as const)
                     .filter((r) => r !== member.role)
                     .map((r) => (
@@ -204,16 +206,16 @@ export default function OrgScreen() {
                         onPress={() =>
                           updateRole({ membershipId: member.membershipId as any, role: r })
                         }
-                        className="bg-surface-700 px-2.5 py-1 rounded-full"
+                        style={{ backgroundColor: theme.surfaceAlt, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}
                       >
-                        <Text className="text-slate-400 text-xs">→ {ROLE_LABELS[r]}</Text>
+                        <Text style={{ color: theme.textSecondary, fontSize: 12 }}>→ {ROLE_LABELS[r]}</Text>
                       </TouchableOpacity>
                     ))}
                   <TouchableOpacity
                     onPress={() => handleRemove(member.membershipId, member.name, false)}
-                    className="ml-auto"
+                    style={{ marginLeft: 'auto' }}
                   >
-                    <Ionicons name="remove-circle-outline" size={20} color="#EF4444" />
+                    <Ionicons name="remove-circle-outline" size={20} color={theme.error} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -221,9 +223,9 @@ export default function OrgScreen() {
               {isSelf && (
                 <TouchableOpacity
                   onPress={() => handleRemove(member.membershipId, member.name, true)}
-                  className="mt-2"
+                  style={{ marginTop: 8 }}
                 >
-                  <Text className="text-red-400 text-xs text-right">Leave organization</Text>
+                  <Text style={{ color: theme.error, fontSize: 12, textAlign: 'right' }}>Leave organization</Text>
                 </TouchableOpacity>
               )}
             </Card>
@@ -233,4 +235,3 @@ export default function OrgScreen() {
     </SafeAreaView>
   );
 }
-

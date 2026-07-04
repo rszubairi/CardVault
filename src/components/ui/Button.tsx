@@ -5,7 +5,9 @@ import {
   ActivityIndicator,
   TouchableOpacityProps,
   View,
+  StyleSheet,
 } from 'react-native';
+import { useAppTheme } from '../../theme/useAppTheme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -19,29 +21,10 @@ interface ButtonProps extends TouchableOpacityProps {
   fullWidth?: boolean;
 }
 
-const variantClasses: Record<Variant, { container: string; text: string }> = {
-  primary: {
-    container: 'bg-primary-500 active:bg-primary-600',
-    text:      'text-white font-semibold',
-  },
-  secondary: {
-    container: 'bg-surface-800 border border-surface-600 active:bg-surface-700',
-    text:      'text-slate-100 font-semibold',
-  },
-  ghost: {
-    container: 'active:bg-surface-800',
-    text:      'text-primary-400 font-semibold',
-  },
-  danger: {
-    container: 'bg-red-500 active:bg-red-600',
-    text:      'text-white font-semibold',
-  },
-};
-
-const sizeClasses: Record<Size, { container: string; text: string }> = {
-  sm: { container: 'px-3 py-2 rounded-lg',   text: 'text-sm'   },
-  md: { container: 'px-5 py-3 rounded-xl',   text: 'text-base' },
-  lg: { container: 'px-6 py-4 rounded-2xl',  text: 'text-lg'   },
+const sizeStyles: Record<Size, { paddingHorizontal: number; paddingVertical: number; borderRadius: number; fontSize: number }> = {
+  sm: { paddingHorizontal: 12, paddingVertical: 8,  borderRadius: 8,  fontSize: 14 },
+  md: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 12, fontSize: 16 },
+  lg: { paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16, fontSize: 18 },
 };
 
 export default function Button({
@@ -53,33 +36,57 @@ export default function Button({
   fullWidth = false,
   disabled,
   className,
+  style,
   ...props
 }: ButtonProps) {
-  const v = variantClasses[variant];
-  const s = sizeClasses[size];
+  const theme = useAppTheme();
+  const s = sizeStyles[size];
+
+  const containerStyle = (() => {
+    switch (variant) {
+      case 'primary':  return { backgroundColor: theme.accent };
+      case 'secondary': return { backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border };
+      case 'ghost':    return { backgroundColor: 'transparent' };
+      case 'danger':   return { backgroundColor: theme.error };
+    }
+  })();
+
+  const textColor = (() => {
+    switch (variant) {
+      case 'primary': return theme.isDark ? '#fff' : '#fff';
+      case 'secondary': return theme.textPrimary;
+      case 'ghost':   return theme.accent;
+      case 'danger':  return '#fff';
+    }
+  })();
+
+  const spinnerColor = (variant === 'primary' || variant === 'danger') ? '#fff' : theme.accent;
 
   return (
     <TouchableOpacity
-      className={`
-        flex-row items-center justify-center
-        ${v.container} ${s.container}
-        ${fullWidth ? 'w-full' : ''}
-        ${disabled || loading ? 'opacity-50' : ''}
-        ${className ?? ''}
-      `}
+      style={[
+        {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          paddingHorizontal: s.paddingHorizontal,
+          paddingVertical: s.paddingVertical,
+          borderRadius: s.borderRadius,
+        },
+        containerStyle,
+        fullWidth && { width: '100%' },
+        (disabled || loading) && { opacity: 0.5 },
+        style,
+      ]}
       disabled={disabled || loading}
       {...props}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'primary' || variant === 'danger' ? '#fff' : '#6366F1'}
-          size="small"
-          className="mr-2"
-        />
+        <ActivityIndicator color={spinnerColor} size="small" style={{ marginRight: 8 }} />
       ) : icon ? (
-        <View className="mr-2">{icon}</View>
+        <View style={{ marginRight: 8 }}>{icon}</View>
       ) : null}
-      <Text className={`${v.text} ${s.text}`}>{label}</Text>
+      <Text style={{ color: textColor, fontSize: s.fontSize, fontWeight: '600' }}>{label}</Text>
     </TouchableOpacity>
   );
 }

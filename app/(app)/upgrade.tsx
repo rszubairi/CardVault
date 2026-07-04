@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAction, useQuery } from 'convex/react';
 import * as WebBrowser from 'expo-web-browser';
 import { api } from '../../convex/_generated/api';
-import Card from '../../src/components/ui/Card';
 import Button from '../../src/components/ui/Button';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
@@ -48,8 +47,8 @@ type CheckoutStatus = 'idle' | 'creating' | 'checkout' | 'verifying' | 'success'
 
 export default function UpgradeScreen() {
   const router = useRouter();
-  const { user }     = useAuthStore();
-  const { hidePaywall, scanCount, scanLimit, setPlan } = useSubscriptionStore();
+  const { user } = useAuthStore();
+  const { hidePaywall, scanCount, scanLimit, plan, setPlan } = useSubscriptionStore();
   const createCheckoutSession = useAction(api.subscriptions.createCheckoutSession);
 
   const [status, setStatus]       = useState<CheckoutStatus>('idle');
@@ -60,7 +59,6 @@ export default function UpgradeScreen() {
     user ? { userId: user._id } : 'skip',
   );
 
-  // Detect successful upgrade after returning from browser
   useEffect(() => {
     if (status === 'verifying' && subscription?.plan !== 'free' && subscription?.status === 'active') {
       setStatus('success');
@@ -68,21 +66,18 @@ export default function UpgradeScreen() {
     }
   }, [subscription?.plan, subscription?.status, status, setPlan]);
 
-  const handleUpgrade = async (plan: 'personal_pro' | 'enterprise') => {
+  const handleUpgrade = async (targetPlan: 'personal_pro' | 'enterprise') => {
     if (!user?.email) {
       Alert.alert('Error', 'User email not found. Please sign in again.');
       return;
     }
-    setActivePlan(plan);
+    setActivePlan(targetPlan);
     setStatus('creating');
 
     try {
-      const { url } = await createCheckoutSession({ userId: user._id, plan, email: user.email });
-
+      const { url } = await createCheckoutSession({ userId: user._id, plan: targetPlan, email: user.email });
       setStatus('checkout');
       await WebBrowser.openAuthSessionAsync(url, 'cardvault://');
-
-      // Browser closed â€” give Stripe webhook time to fire then re-check
       setStatus('verifying');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Could not start checkout.';
@@ -113,6 +108,8 @@ export default function UpgradeScreen() {
   }
 
   const isLoading = status === 'creating' || status === 'checkout' || status === 'verifying';
+  const showPro        = plan === 'free';
+  const showEnterprise = plan === 'free' || plan === 'personal_pro';
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
@@ -124,102 +121,123 @@ export default function UpgradeScreen() {
         >
           <Ionicons name="close" size={24} color="#94A3B8" />
         </TouchableOpacity>
-        <Text className="text-slate-50 text-lg font-bold">Upgrade CardVault</Text>
+        <Text className="text-slate-50 text-lg font-bold">
+          {plan === 'personal_pro' ? 'Upgrade to Enterprise' : 'Upgrade CardVault'}
+        </Text>
       </View>
 
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        {/* Limit Notice */}
-        <Card className="p-4 mb-6 border border-amber-700/50 bg-amber-900/20">
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="warning-outline" size={18} color="#FBBF24" />
-            <Text className="text-amber-400 text-sm font-semibold ml-2">
-              Free Limit Reached
+        {/* Scan limit notice — free users only */}
+        {plan === 'free' && (
+          <View className="p-4 mb-6 rounded-xl border border-amber-700/50 bg-amber-900/20">
+            <View className="flex-row items-center mb-2">
+              <Ionicons name="warning-outline" size={18} color="#FBBF24" />
+              <Text className="text-amber-400 text-sm font-semibold ml-2">Free Limit Reached</Text>
+            </View>
+            <Text className="text-slate-400 text-sm leading-5">
+              You've used {scanCount} of {scanLimit} free scans. Upgrade to continue scanning
+              and unlock all AI features.
             </Text>
           </View>
-          <Text className="text-slate-400 text-sm leading-5">
-            You've used {scanCount} of {scanLimit} free scans. Upgrade to continue scanning
-            and unlock all AI features.
-          </Text>
-        </Card>
+        )}
 
-        {/* Verifying state */}
+        {/* Already on Pro banner */}
+        {plan === 'personal_pro' && (
+          <View className="p-4 mb-6 rounded-xl border border-primary-700/50 bg-primary-900/20">
+            <View className="flex-row items-center">
+              <Ionicons name="checkmark-circle" size={18} color="#6366F1" />
+              <Text className="text-primary-300 text-sm font-semibold ml-2">
+                You're on Personal Pro
+              </Text>
+            </View>
+            <Text className="text-slate-400 text-sm mt-1 leading-5">
+              Upgrade to Enterprise to unlock team collaboration and shared CRM features.
+            </Text>
+          </View>
+        )}
+
+        {/* Verifying */}
         {status === 'verifying' && (
-          <Card className="p-6 items-center mb-6">
+          <View className="p-6 items-center mb-6 bg-surface-800 rounded-2xl">
             <ActivityIndicator color="#6366F1" size="large" />
             <Text className="text-slate-300 text-sm mt-3">Verifying your subscription...</Text>
             <Text className="text-slate-500 text-xs mt-1">This may take a moment.</Text>
-          </Card>
+          </View>
         )}
 
-        {/* Personal Pro */}
-        <Card variant="elevated" className="p-5 mb-4 border border-primary-700/50">
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-slate-50 text-xl font-bold">Personal Pro</Text>
-            <View className="bg-primary-500 px-3 py-1 rounded-full">
-              <Text className="text-white text-xs font-semibold">Popular</Text>
+        {/* Personal Pro card */}
+        {showPro && (
+          <View className="p-5 mb-4 bg-surface-800 rounded-2xl border border-primary-700/50">
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-slate-50 text-xl font-bold">Personal Pro</Text>
+              <View className="bg-primary-500 px-3 py-1 rounded-full">
+                <Text className="text-white text-xs font-semibold">Popular</Text>
+              </View>
             </View>
-          </View>
-          <Text className="text-slate-400 text-sm mb-4">For individual professionals</Text>
+            <Text className="text-slate-400 text-sm mb-4">For individual professionals</Text>
 
-          <View className="flex-row items-baseline mb-5">
-            <Text className="text-slate-50 text-4xl font-bold">$10</Text>
-            <Text className="text-slate-400 text-sm ml-2">/ year</Text>
-          </View>
-
-          {PRO_FEATURES.map((f) => (
-            <View key={f} className="flex-row items-center mb-2.5">
-              <Ionicons name="checkmark-circle" size={18} color="#6366F1" />
-              <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+            <View className="flex-row items-baseline mb-5">
+              <Text className="text-slate-50 text-4xl font-bold">$10</Text>
+              <Text className="text-slate-400 text-sm ml-2">/ year</Text>
             </View>
-          ))}
 
-          <Button
-            label={
-              status === 'creating' && activePlan === 'personal_pro'
-                ? 'Creating checkout...'
-                : status === 'checkout' && activePlan === 'personal_pro'
-                ? 'Complete payment in browser'
-                : 'Upgrade to Pro - $10/year'
-            }
-            fullWidth
-            loading={isLoading && activePlan === 'personal_pro'}
-            disabled={isLoading}
-            onPress={() => handleUpgrade('personal_pro')}
-            className="mt-5"
-          />
-        </Card>
+            {PRO_FEATURES.map((f) => (
+              <View key={f} className="flex-row items-center mb-2.5">
+                <Ionicons name="checkmark-circle" size={18} color="#6366F1" />
+                <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+              </View>
+            ))}
 
-        {/* Enterprise */}
-        <Card variant="outlined" className="p-5 mb-4">
-          <Text className="text-slate-50 text-xl font-bold mb-1">Enterprise</Text>
-          <Text className="text-slate-400 text-sm mb-4">For teams and organizations</Text>
-
-          <View className="flex-row items-baseline mb-5">
-            <Text className="text-slate-50 text-4xl font-bold">$15</Text>
-            <Text className="text-slate-400 text-sm ml-2">/ user / month</Text>
+            <Button
+              label={
+                status === 'creating' && activePlan === 'personal_pro'
+                  ? 'Creating checkout...'
+                  : status === 'checkout' && activePlan === 'personal_pro'
+                  ? 'Complete payment in browser'
+                  : 'Upgrade to Pro — $10/year'
+              }
+              fullWidth
+              loading={isLoading && activePlan === 'personal_pro'}
+              disabled={isLoading}
+              onPress={() => handleUpgrade('personal_pro')}
+              style={{ marginTop: 20 }}
+            />
           </View>
+        )}
 
-          {ENTERPRISE_FEATURES.map((f) => (
-            <View key={f} className="flex-row items-center mb-2.5">
-              <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
-              <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+        {/* Enterprise card */}
+        {showEnterprise && (
+          <View className="p-5 mb-4 bg-surface-800 rounded-2xl border border-surface-600">
+            <Text className="text-slate-50 text-xl font-bold mb-1">Enterprise</Text>
+            <Text className="text-slate-400 text-sm mb-4">For teams and organizations</Text>
+
+            <View className="flex-row items-baseline mb-5">
+              <Text className="text-slate-50 text-4xl font-bold">$15</Text>
+              <Text className="text-slate-400 text-sm ml-2">/ user / month</Text>
             </View>
-          ))}
 
-          <Button
-            label={
-              status === 'creating' && activePlan === 'enterprise'
-                ? 'Creating checkout...'
-                : 'Start Enterprise Trial'
-            }
-            variant="secondary"
-            fullWidth
-            loading={isLoading && activePlan === 'enterprise'}
-            disabled={isLoading}
-            onPress={() => handleUpgrade('enterprise')}
-            className="mt-5"
-          />
-        </Card>
+            {ENTERPRISE_FEATURES.map((f) => (
+              <View key={f} className="flex-row items-center mb-2.5">
+                <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
+                <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+              </View>
+            ))}
+
+            <Button
+              label={
+                status === 'creating' && activePlan === 'enterprise'
+                  ? 'Creating checkout...'
+                  : 'Start Enterprise Trial'
+              }
+              variant="secondary"
+              fullWidth
+              loading={isLoading && activePlan === 'enterprise'}
+              disabled={isLoading}
+              onPress={() => handleUpgrade('enterprise')}
+              style={{ marginTop: 20 }}
+            />
+          </View>
+        )}
 
         <Text className="text-slate-500 text-xs text-center mt-2">
           Payments secured by Stripe. Cancel anytime.
@@ -228,4 +246,3 @@ export default function UpgradeScreen() {
     </SafeAreaView>
   );
 }
-

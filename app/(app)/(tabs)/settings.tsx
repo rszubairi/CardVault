@@ -38,6 +38,7 @@ import { LANGUAGES } from '../../../src/i18n/translations';
 import { syncAllToDevice, hasBeenSynced } from '../../../src/lib/deviceContacts';
 import { generateSalt, hashPIN, deriveKey } from '../../../src/lib/encryption';
 import Constants from 'expo-constants';
+import { isEnterprise } from '../../../src/config/appVariant';
 
 type SettingRow = {
   icon: string;
@@ -58,7 +59,8 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
     <TouchableOpacity
       style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border + '80' }}
       onPress={onPress}
-      disabled={toggle}
+      disabled={toggle || !onPress}
+      activeOpacity={onPress ? 0.7 : 1}
     >
       <Ionicons name={icon as any} size={20} color={danger ? theme.error : accent} />
       <Text style={{ flex: 1, marginLeft: 16, fontSize: 16, color: danger ? theme.error : theme.textPrimary }}>
@@ -73,9 +75,9 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
           trackColor={{ false: theme.surfaceAlt, true: accent }}
           thumbColor="#fff"
         />
-      ) : (
+      ) : onPress ? (
         <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-      )}
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -655,25 +657,27 @@ export default function SettingsScreen() {
               icon="flash-outline"
               label={t.currentPlan}
               value={planLabel}
-              onPress={() => router.push('/(app)/upgrade')}
-            accent={theme.accent}
-              />
+              onPress={plan === 'enterprise' ? undefined : () => router.push('/(app)/upgrade')}
+              accent={theme.accent}
+            />
             {plan === 'free' && (
               <Row
                 icon="scan-outline"
                 label={t.scansUsed}
                 value={`${scanCount} / ${scanLimit}`}
                 onPress={() => {}}
-              accent={theme.accent}
+                accent={theme.accent}
               />
             )}
-            <Row
-              icon="card-outline"
-              label={t.upgradeToPro}
-              badge="USD 10/yr"
-              onPress={() => router.push('/(app)/upgrade')}
-            accent={theme.accent}
+            {plan !== 'enterprise' && (
+              <Row
+                icon="card-outline"
+                label={plan === 'personal_pro' ? 'Upgrade to Enterprise' : t.upgradeToPro}
+                badge={plan === 'personal_pro' ? 'USD 15/mo' : 'USD 10/yr'}
+                onPress={() => router.push('/(app)/upgrade')}
+                accent={theme.accent}
               />
+            )}
           </Card>
         </View>
 
@@ -792,18 +796,18 @@ export default function SettingsScreen() {
           </Card>
         </View>
 
-        {/* Organization */}
-        <View className="mb-6">
-          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
-            {t.organization}
-          </Text>
-          <Card variant="outlined" className="mx-5">
-            <Row icon="business-outline" label={t.myOrganization} onPress={() => router.push('/(app)/org/')} accent={theme.accent}
-              />
-            <Row icon="people-outline"   label={t.followUps}      onPress={() => router.push('/(app)/follow-ups')} accent={theme.accent}
-              />
-          </Card>
-        </View>
+        {/* Organization — enterprise build only */}
+        {isEnterprise && (
+          <View className="mb-6">
+            <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
+              {t.organization}
+            </Text>
+            <Card variant="outlined" className="mx-5">
+              <Row icon="business-outline" label={t.myOrganization} onPress={() => router.push('/(app)/org/')} accent={theme.accent} />
+              <Row icon="people-outline"   label={t.followUps}      onPress={() => router.push('/(app)/follow-ups')} accent={theme.accent} />
+            </Card>
+          </View>
+        )}
 
         {/* Data */}
         <View className="mb-6">
