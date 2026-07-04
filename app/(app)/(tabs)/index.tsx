@@ -15,20 +15,14 @@ import { api } from '../../../convex/_generated/api';
 import Card from '../../../src/components/ui/Card';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
-const QUICK_ACTIONS = [
-  { icon: 'scan',       label: 'Scan',    href: '/(app)/(tabs)/scan',     color: '#6366F1' },
-  { icon: 'search',     label: 'Search',  href: '/(app)/(tabs)/contacts', color: '#10B981' },
-  { icon: 'person-add', label: 'Add',     href: '/(app)/contact/new',     color: '#3B82F6' },
-  { icon: 'download-outline', label: 'Export', href: '/(app)/export',    color: '#F59E0B' },
-] as const;
-
-function ContactInitials({ name }: { name: string }) {
+function ContactInitials({ name, accent }: { name: string; accent: string }) {
   const parts   = name.trim().split(' ');
   const initials = `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
   return (
-    <View className="w-10 h-10 bg-primary-800 rounded-full items-center justify-center">
-      <Text className="text-primary-200 text-sm font-bold">{initials || '?'}</Text>
+    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accent + '30', alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: accent, fontSize: 14, fontWeight: 'bold' }}>{initials || '?'}</Text>
     </View>
   );
 }
@@ -37,6 +31,7 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { plan, scanCount, scanLimit, setScanCount } = useSubscriptionStore();
+  const theme = useAppTheme();
 
   const stats        = useQuery(api.contacts.getStats, user ? { userId: user._id } : 'skip');
   const recentContacts = useQuery(
@@ -61,10 +56,17 @@ export default function DashboardScreen() {
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
+  const quickActions = [
+    { icon: 'scan',           label: 'Scan',   href: '/(app)/(tabs)/scan',     color: theme.accent },
+    { icon: 'search',         label: 'Search', href: '/(app)/(tabs)/contacts', color: '#10B981' },
+    { icon: 'person-add',     label: 'Add',    href: '/(app)/contact/new',     color: '#3B82F6' },
+    { icon: 'download-outline', label: 'Export', href: '/(app)/export',        color: '#F59E0B' },
+  ] as const;
+
   const statCards = [
-    { label: 'Added Today',    value: stats?.today        ?? 0, icon: 'today-outline',        color: '#6366F1' },
-    { label: 'This Week',      value: stats?.thisWeek     ?? 0, icon: 'calendar-outline',     color: '#10B981' },
-    { label: 'Total',          value: stats?.total        ?? 0, icon: 'people-outline',       color: '#3B82F6' },
+    { label: 'Added Today',    value: stats?.today        ?? 0, icon: 'today-outline',         color: theme.accent },
+    { label: 'This Week',      value: stats?.thisWeek     ?? 0, icon: 'calendar-outline',      color: '#10B981' },
+    { label: 'Total',          value: stats?.total        ?? 0, icon: 'people-outline',        color: '#3B82F6' },
     { label: 'Follow-ups Due', value: stats?.followUpsDue ?? 0, icon: 'notifications-outline', color: '#EF4444' },
   ];
 
@@ -74,7 +76,7 @@ export default function DashboardScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366F1" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} />
         }
       >
         {/* Header */}
@@ -94,7 +96,8 @@ export default function DashboardScreen() {
         {/* Plan Banner */}
         {plan === 'free' && (
           <TouchableOpacity
-            className="mx-5 mb-5 bg-primary-900/60 border border-primary-700 rounded-2xl px-4 py-3 flex-row items-center"
+            className="mx-5 mb-5 rounded-2xl px-4 py-3 flex-row items-center"
+            style={{ backgroundColor: theme.accentFaint, borderWidth: 1, borderColor: theme.accent + '40' }}
             onPress={() => router.push('/(app)/upgrade')}
           >
             <Ionicons name="flash" size={18} color="#FBBF24" />
@@ -103,7 +106,7 @@ export default function DashboardScreen() {
                 {scanCount} / {scanLimit} free scans used
               </Text>
               <Text className="text-slate-400 text-xs mt-0.5">
-                Upgrade to Pro for unlimited scanning â†’
+                Upgrade to Pro for unlimited scanning
               </Text>
             </View>
           </TouchableOpacity>
@@ -140,7 +143,7 @@ export default function DashboardScreen() {
             Quick Actions
           </Text>
           <View className="flex-row gap-2">
-            {QUICK_ACTIONS.map(({ icon, label, href, color }) => (
+            {quickActions.map(({ icon, label, href, color }) => (
               <TouchableOpacity
                 key={label}
                 className="flex-1 bg-surface-800 rounded-2xl py-3 items-center"
@@ -165,13 +168,13 @@ export default function DashboardScreen() {
               Recent Contacts
             </Text>
             <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/contacts')}>
-              <Text className="text-primary-400 text-sm">See all</Text>
+              <Text style={{ color: theme.accent }} className="text-sm">See all</Text>
             </TouchableOpacity>
           </View>
 
           {recentContacts === undefined && (
             <Card className="p-6 items-center">
-              <ActivityIndicator color="#6366F1" />
+              <ActivityIndicator color={theme.accent} />
             </Card>
           )}
 
@@ -182,7 +185,8 @@ export default function DashboardScreen() {
                 No contacts yet.{'\n'}Scan your first business card to get started.
               </Text>
               <TouchableOpacity
-                className="mt-4 bg-primary-500 px-5 py-2.5 rounded-xl"
+                className="mt-4 px-5 py-2.5 rounded-xl"
+                style={{ backgroundColor: theme.accent }}
                 onPress={() => router.push('/(app)/(tabs)/scan')}
               >
                 <Text className="text-white text-sm font-semibold">Scan a Card</Text>
@@ -201,12 +205,12 @@ export default function DashboardScreen() {
                     onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: contact._id } })}
                     className={`flex-row items-center px-4 py-3 ${isLast ? '' : 'border-b border-surface-700'}`}
                   >
-                    <ContactInitials name={fullName} />
+                    <ContactInitials name={fullName} accent={theme.accent} />
                     <View className="flex-1 ml-3">
                       <Text className="text-slate-200 text-sm font-medium">{fullName}</Text>
                       {(contact.designation || contact.company) && (
                         <Text className="text-slate-500 text-xs mt-0.5" numberOfLines={1}>
-                          {[contact.designation, contact.company].filter(Boolean).join(' Â· ')}
+                          {[contact.designation, contact.company].filter(Boolean).join(' · ')}
                         </Text>
                       )}
                     </View>

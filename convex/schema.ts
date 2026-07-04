@@ -14,6 +14,7 @@ export default defineSchema({
     authProvider:      v.union(v.literal('google'), v.literal('linkedin')),
     externalId:        v.string(),
     pushToken:         v.optional(v.string()),
+    corporateEmail:    v.optional(v.string()),
     createdAt:         v.number(),
     // Encryption
     encryptionEnabled: v.optional(v.boolean()),
@@ -59,6 +60,33 @@ export default defineSchema({
     billingEmail:   v.string(),
     createdAt:      v.number(),
   }),
+
+  // ─── Organization Invites ─────────────────────────────────────────────────
+  organizationInvites: defineTable({
+    organizationId: v.id('organizations'),
+    invitedByUserId: v.id('users'),
+    // Personal email the invite was addressed to (used to match existing / new user)
+    personalEmail:  v.string(),
+    role:           v.union(
+      v.literal('admin'),
+      v.literal('manager'),
+      v.literal('member'),
+      v.literal('read_only'),
+    ),
+    inviteCode:     v.string(), // 8-char uppercase alphanumeric shown to admin
+    status:         v.union(
+      v.literal('pending'),
+      v.literal('accepted'),
+      v.literal('declined'),
+      v.literal('expired'),
+    ),
+    expiresAt:      v.number(),
+    createdAt:      v.number(),
+  })
+    .index('by_org',    ['organizationId'])
+    .index('by_email',  ['personalEmail'])
+    .index('by_code',   ['inviteCode'])
+    .index('by_status', ['status']),
 
   organizationUsers: defineTable({
     organizationId: v.id('organizations'),

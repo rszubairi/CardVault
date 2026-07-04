@@ -2,6 +2,7 @@
 import {
   Stack,
   Redirect,
+  useRouter,
 } from 'expo-router';
 import {
   View,
@@ -25,6 +26,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { syncAllToDevice, hasBeenSynced } from '../../src/lib/deviceContacts';
 import { useSettingsStore } from '../../src/stores/settingsStore';
+import { useLanguageStore } from '../../src/stores/languageStore';
 import { useContactStore } from '../../src/stores/contactStore';
 import * as Notifications from 'expo-notifications';
 import {
@@ -294,14 +296,43 @@ function OrgRevocationListener() {
   return null;
 }
 
+// ─── New-user invite auto-navigator ──────────────────────────────────────────
+
+function PendingInviteNavigator() {
+  const { user, isNewUser, setIsNewUser } = useAuthStore();
+  const router = useRouter();
+  const handled = useRef(false);
+
+  const pendingInvites = useQuery(
+    api.organizations.getPendingInvitesForUser,
+    isNewUser && user ? { personalEmail: user.email } : 'skip',
+  );
+
+  useEffect(() => {
+    if (!isNewUser || handled.current || pendingInvites === undefined) return;
+    handled.current = true;
+    setIsNewUser(false);
+    if (pendingInvites.length > 0) {
+      const invite = pendingInvites[0];
+      router.push({
+        pathname: '/(app)/org/accept-invite',
+        params: { inviteId: invite.inviteId, orgName: invite.orgName, role: invite.role },
+      } as any);
+    }
+  }, [isNewUser, pendingInvites]);
+
+  return null;
+}
+
 // ─── Contact sync ─────────────────────────────────────────────────────────────
 
 function ContactSyncProvider() {
   const { user } = useAuthStore();
   const { syncToPhone, loaded, loadSettings } = useSettingsStore();
+  const { loadLanguage } = useLanguageStore();
   const contacts = useQuery(api.contacts.list, user ? { userId: user._id } : 'skip');
 
-  useEffect(() => { loadSettings(); }, []);
+  useEffect(() => { loadSettings(); loadLanguage(); }, []);
 
   useEffect(() => {
     if (!loaded || !syncToPhone || !contacts || contacts.length === 0) return;
@@ -332,6 +363,7 @@ export default function AppLayout() {
     <SecurityProvider>
       <ContactSyncProvider />
       <OrgRevocationListener />
+      <PendingInviteNavigator />
       <UpdateProvider />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -379,6 +411,10 @@ export default function AppLayout() {
         <Stack.Screen
           name="import"
           options={{ presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="privacy"
+          options={{ animation: 'slide_from_right' }}
         />
       </Stack>
     </SecurityProvider>

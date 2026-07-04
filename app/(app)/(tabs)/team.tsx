@@ -11,18 +11,12 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { isEnterprise } from '../../../src/config/appVariant';
-import { Redirect } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { E } from '../../../enterprise/constants/theme';
 import MembersScreen     from '../../../enterprise/screens/admin/MembersScreen';
 import PermissionsScreen from '../../../enterprise/screens/admin/PermissionsScreen';
 import AuditLogScreen    from '../../../enterprise/screens/admin/AuditLogScreen';
 import { Id } from '../../../convex/_generated/dataModel';
-
-if (!isEnterprise) {
-  export default function TeamTabDisabled() {
-    return <Redirect href="/(app)/(tabs)/" />;
-  }
-}
 
 type AdminTab = 'members' | 'permissions' | 'activity';
 
@@ -33,12 +27,20 @@ const TABS: { key: AdminTab; label: string; icon: keyof typeof Ionicons.glyphMap
 ];
 
 export default function TeamTab() {
+  if (!isEnterprise) return <Redirect href="/(app)/(tabs)/" />;
+
   const { user } = useAuthStore();
+  const router   = useRouter();
   const [activeTab, setActiveTab] = useState<AdminTab>('members');
 
   const myOrg = useQuery(
     api.organizations.getMyOrg,
     user ? { userId: user._id as Id<'users'> } : 'skip',
+  );
+
+  const pendingInvites = useQuery(
+    api.organizations.getPendingInvitesForUser,
+    user ? { personalEmail: user.email } : 'skip',
   );
 
   if (!user) return null;
@@ -52,6 +54,9 @@ export default function TeamTab() {
   }
 
   if (!myOrg) {
+    const hasPendingInvite = pendingInvites && pendingInvites.length > 0;
+    const invite           = pendingInvites?.[0];
+
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.noOrg}>
@@ -60,8 +65,33 @@ export default function TeamTab() {
           </View>
           <Text style={styles.noOrgTitle}>No organization</Text>
           <Text style={styles.noOrgSub}>
-            You're not part of an enterprise organization yet. Ask your admin to invite you.
+            You're not part of an enterprise organization yet.{hasPendingInvite ? '' : ' Ask your admin to invite you.'}
           </Text>
+
+          {hasPendingInvite && invite && (
+            <TouchableOpacity
+              style={styles.inviteBanner}
+              onPress={() => router.push({
+                pathname: '/(app)/org/accept-invite',
+                params: {
+                  inviteId: invite.inviteId,
+                  orgName:  invite.orgName,
+                  role:     invite.role,
+                },
+              })}
+            >
+              <View style={styles.inviteBannerIcon}>
+                <Ionicons name="mail-unread-outline" size={22} color={E.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.inviteBannerTitle}>Invitation from {invite.orgName}</Text>
+                <Text style={styles.inviteBannerSub}>
+                  You've been invited as {invite.role.replace('_', ' ')} · Tap to accept
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={E.gold} />
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -193,5 +223,28 @@ const styles = StyleSheet.create({
     borderColor:     E.border,
   },
   noOrgTitle: { fontSize: 18, fontWeight: '700', color: E.textPrimary },
-  noOrgSub:   { fontSize: 14, color: E.textSecondary, textAlign: 'center', lineHeight: 22 },
+  noOrgSub:   { fontSize: 14, color: E.textSecondary, textAlign: 'center', lineHeight: 22, marginBottom: 24 },
+
+  inviteBanner: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    backgroundColor:   E.goldTint,
+    borderRadius:      16,
+    borderWidth:       1,
+    borderColor:       E.gold + '50',
+    paddingVertical:   16,
+    paddingHorizontal: 16,
+    gap:               14,
+    marginTop:         4,
+  },
+  inviteBannerIcon: {
+    width:           44,
+    height:          44,
+    borderRadius:    12,
+    backgroundColor: E.gold + '20',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  inviteBannerTitle: { color: E.textPrimary, fontSize: 14, fontWeight: '700' },
+  inviteBannerSub:   { color: E.gold, fontSize: 12, marginTop: 3 },
 });

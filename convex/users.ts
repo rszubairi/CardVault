@@ -126,12 +126,13 @@ export const disableEncryption = mutation({
 
 export const updateProfile = mutation({
   args: {
-    userId:      v.id('users'),
-    name:        v.optional(v.string()),
-    phone:       v.optional(v.string()),
-    linkedinUrl: v.optional(v.string()),
-    company:     v.optional(v.string()),
-    designation: v.optional(v.string()),
+    userId:         v.id('users'),
+    name:           v.optional(v.string()),
+    phone:          v.optional(v.string()),
+    linkedinUrl:    v.optional(v.string()),
+    company:        v.optional(v.string()),
+    designation:    v.optional(v.string()),
+    corporateEmail: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { userId, ...updates } = args;

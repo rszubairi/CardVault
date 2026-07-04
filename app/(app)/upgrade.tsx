@@ -146,7 +146,7 @@ export default function UpgradeScreen() {
         {status === 'verifying' && (
           <Card className="p-6 items-center mb-6">
             <ActivityIndicator color="#6366F1" size="large" />
-            <Text className="text-slate-300 text-sm mt-3">Verifying your subscriptionâ€¦</Text>
+            <Text className="text-slate-300 text-sm mt-3">Verifying your subscription...</Text>
             <Text className="text-slate-500 text-xs mt-1">This may take a moment.</Text>
           </Card>
         )}
@@ -176,10 +176,10 @@ export default function UpgradeScreen() {
           <Button
             label={
               status === 'creating' && activePlan === 'personal_pro'
-                ? 'Creating checkoutâ€¦'
+                ? 'Creating checkout...'
                 : status === 'checkout' && activePlan === 'personal_pro'
                 ? 'Complete payment in browser'
-                : 'Upgrade to Pro â€” $10/year'
+                : 'Upgrade to Pro - $10/year'
             }
             fullWidth
             loading={isLoading && activePlan === 'personal_pro'}
@@ -209,7 +209,7 @@ export default function UpgradeScreen() {
           <Button
             label={
               status === 'creating' && activePlan === 'enterprise'
-                ? 'Creating checkoutâ€¦'
+                ? 'Creating checkout...'
                 : 'Start Enterprise Trial'
             }
             variant="secondary"

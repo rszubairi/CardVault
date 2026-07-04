@@ -40,10 +40,12 @@ export default function MembersScreen({ organizationId, myRole }: Props) {
   const [inviting, setInviting]       = useState(false);
   const [showInvite, setShowInvite]   = useState(false);
 
-  const members    = useQuery(api.organizations.listMembers, { organizationId });
-  const inviteMut  = useMutation(api.organizations.inviteByEmail);
-  const removeMut  = useMutation(api.organizations.removeMember);
-  const updateRole = useMutation(api.organizations.updateRole);
+  const members        = useQuery(api.organizations.listMembers, { organizationId });
+  const pendingInvites = useQuery(api.organizations.listPendingInvites, { organizationId });
+  const createInvite   = useMutation(api.organizations.createInvite);
+  const cancelInvite   = useMutation(api.organizations.cancelInvite);
+  const removeMut      = useMutation(api.organizations.removeMember);
+  const updateRole     = useMutation(api.organizations.updateRole);
 
   const isAdmin = ['owner', 'admin'].includes(myRole);
 
@@ -51,20 +53,34 @@ export default function MembersScreen({ organizationId, myRole }: Props) {
     if (!inviteEmail.trim() || !user) return;
     setInviting(true);
     try {
-      await inviteMut({
+      const result = await createInvite({
         organizationId,
-        actorUserId: user._id as Id<'users'>,
-        email:       inviteEmail.trim().toLowerCase(),
-        role:        inviteRole,
+        actorUserId:   user._id as Id<'users'>,
+        personalEmail: inviteEmail.trim().toLowerCase(),
+        role:          inviteRole,
       });
       setInviteEmail('');
       setShowInvite(false);
-      Alert.alert('Invited', `${inviteEmail} has been added to the team.`);
+      Alert.alert(
+        'Invitation Created',
+        `Invite code for ${inviteEmail}:\n\n${result.inviteCode}\n\nShare this code with them — they'll enter it in the app to join.`,
+      );
     } catch (e: any) {
       Alert.alert('Error', e.message);
     } finally {
       setInviting(false);
     }
+  };
+
+  const handleCancelInvite = (inviteId: Id<'organizationInvites'>, email: string) => {
+    Alert.alert('Cancel Invite', `Cancel the pending invite for ${email}?`, [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Cancel Invite',
+        style: 'destructive',
+        onPress: () => cancelInvite({ inviteId, actorUserId: user!._id as Id<'users'> }).catch((e: any) => Alert.alert('Error', e.message)),
+      },
+    ]);
   };
 
   const handleRemove = (membershipId: Id<'organizationUsers'>, name: string) => {
@@ -162,6 +178,26 @@ export default function MembersScreen({ organizationId, myRole }: Props) {
               <Text style={styles.sendBtnText}>Send Invite</Text>
             )}
           </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Pending invites */}
+      {isAdmin && pendingInvites && pendingInvites.length > 0 && (
+        <View style={styles.pendingSection}>
+          <Text style={styles.pendingTitle}>Pending Invites ({pendingInvites.length})</Text>
+          {pendingInvites.map((inv) => (
+            <View key={inv.inviteId} style={styles.pendingRow}>
+              <View style={styles.pendingInfo}>
+                <Text style={styles.pendingEmail}>{inv.personalEmail}</Text>
+                <Text style={styles.pendingMeta}>
+                  Code: {inv.inviteCode} · {ROLE_LABELS[inv.role as Role]}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => handleCancelInvite(inv.inviteId as Id<'organizationInvites'>, inv.personalEmail)}>
+                <Ionicons name="close-circle-outline" size={20} color={E.textMuted} />
+              </TouchableOpacity>
+            </View>
+          ))}
         </View>
       )}
 
@@ -279,6 +315,21 @@ const styles = StyleSheet.create({
     alignItems:      'center',
   },
   sendBtnText: { color: E.bg, fontWeight: '700', fontSize: 14 },
+
+  pendingSection: {
+    marginHorizontal: 20,
+    marginBottom:     16,
+    backgroundColor:  E.surface,
+    borderRadius:     12,
+    padding:          12,
+    borderWidth:      1,
+    borderColor:      E.border,
+  },
+  pendingTitle: { color: E.textMuted, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 },
+  pendingRow:   { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: 10 },
+  pendingInfo:  { flex: 1 },
+  pendingEmail: { color: E.textSecondary, fontSize: 13 },
+  pendingMeta:  { color: E.textMuted, fontSize: 11, marginTop: 2 },
 
   list:      { paddingHorizontal: 20, paddingBottom: 40 },
   memberRow: {

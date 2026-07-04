@@ -136,7 +136,7 @@ export default function FollowUpsScreen() {
         {overdue.length > 0 && (
           <>
             <Text className="text-red-400 text-xs font-semibold uppercase tracking-widest mb-3">
-              Overdue Â· {overdue.length}
+              Overdue · {overdue.length}
             </Text>
             {overdue.map((f) => (
               <FollowUpCard key={f._id} contact={f} />
@@ -147,7 +147,7 @@ export default function FollowUpsScreen() {
         {upcoming.length > 0 && (
           <>
             <Text className={`text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3 ${overdue.length ? 'mt-4' : ''}`}>
-              Upcoming Â· {upcoming.length}
+              Upcoming · {upcoming.length}
             </Text>
             {upcoming.map((f) => (
               <FollowUpCard key={f._id} contact={f} />

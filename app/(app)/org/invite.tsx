@@ -22,24 +22,25 @@ export default function InviteScreen() {
   const router   = useRouter();
   const { user } = useAuthStore();
   const org      = useQuery(api.organizations.getMyOrg, user ? { userId: user._id } : 'skip');
-  const invite   = useMutation(api.organizations.inviteByEmail);
+  const createInvite = useMutation(api.organizations.createInvite);
 
   const [email,  setEmail]  = useState('');
   const [role,   setRole]   = useState<InviteRole>('member');
   const [saving, setSaving] = useState(false);
 
   const handleInvite = async () => {
-    if (!org || !email.trim()) return;
+    if (!org || !user || !email.trim()) return;
     setSaving(true);
     try {
-      await invite({
+      const result = await createInvite({
         organizationId: org._id,
-        email:          email.trim().toLowerCase(),
+        actorUserId:    user._id,
+        personalEmail:  email.trim().toLowerCase(),
         role,
       });
       Alert.alert(
-        'Member Added',
-        `${email.trim()} has been added to ${org.name} as ${role}.`,
+        'Invitation Sent',
+        `An invite has been created for ${email.trim()}.\n\nInvite Code: ${result.inviteCode}\n\nShare this code with them so they can accept the invitation in the app.`,
         [{ text: 'Done', onPress: () => router.back() }],
       );
     } catch (err: unknown) {

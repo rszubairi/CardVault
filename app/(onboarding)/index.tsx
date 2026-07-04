@@ -23,7 +23,7 @@ const SLIDES = [
     bg: '#0F0F23',
     accent: '#6366F1',
     title: 'Scan Any Card',
-    subtitle: 'Point your camera at any business card. AI extracts every contact detail in under a second â€” no typing required.',
+    subtitle: 'Point your camera at any business card. AI extracts every contact detail in under a second - no typing required.',
   },
   {
     key: 'organize',

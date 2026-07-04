@@ -15,6 +15,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { Doc } from '../../../convex/_generated/dataModel';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
@@ -207,6 +208,7 @@ function BusinessCard({
 export default function ContactsScreen() {
   const router   = useRouter();
   const { user } = useAuthStore();
+  const theme    = useAppTheme();
   const [query,           setQuery]           = useState('');
   const [filterFavorites, setFilterFavorites] = useState(false);
 
@@ -250,7 +252,8 @@ export default function ContactsScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push('/(app)/contact/new')}
-              className="w-9 h-9 bg-primary-500 rounded-full items-center justify-center"
+              className="w-9 h-9 rounded-full items-center justify-center"
+              style={{ backgroundColor: theme.accent }}
             >
               <Ionicons name="add" size={22} color="#fff" />
             </TouchableOpacity>
@@ -279,7 +282,7 @@ export default function ContactsScreen() {
       {/* Loading */}
       {contacts === undefined && (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color="#6366F1" size="large" />
+          <ActivityIndicator color={theme.accent} size="large" />
         </View>
       )}
 
@@ -294,7 +297,8 @@ export default function ContactsScreen() {
           </Text>
           {contacts.length === 0 && (
             <TouchableOpacity
-              className="mt-5 bg-primary-500 px-6 py-3 rounded-xl"
+              className="mt-5 px-6 py-3 rounded-xl"
+              style={{ backgroundColor: theme.accent }}
               onPress={() => router.push('/(app)/(tabs)/scan')}
             >
               <Text className="text-white text-sm font-semibold">Scan a Card</Text>

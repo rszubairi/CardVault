@@ -24,6 +24,7 @@ async function finishGoogleSignIn(
   router: ReturnType<typeof useRouter>,
   setToken: (token: string | null) => void,
   setUser: (user: any) => void,
+  setIsNewUser: (v: boolean) => void,
 ) {
   const profile = await fetchGoogleProfile(accessToken);
   if (!profile) throw new Error('Failed to fetch Google profile');
@@ -40,6 +41,7 @@ async function finishGoogleSignIn(
   await storeSession(accessToken, user);
   setToken(accessToken);
   setUser(user as any);
+  if (isNew) setIsNewUser(true);
 
   setTimeout(() => {
     router.replace((isNew ? '/profile-setup' : '/(app)/(tabs)') as any);
@@ -48,7 +50,7 @@ async function finishGoogleSignIn(
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setUser, setToken } = useAuthStore();
+  const { setUser, setToken, setIsNewUser } = useAuthStore();
   const getOrCreateUser = useMutation(api.users.getOrCreate);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [linkedinLoading, setLinkedinLoading] = useState(false);
@@ -93,6 +95,7 @@ export default function LoginScreen() {
           await storeSession(accessToken, user);
           setToken(accessToken);
           setUser(user as any);
+          if (isNew) setIsNewUser(true);
           setTimeout(() => {
             router.replace((isNew ? '/profile-setup' : '/(app)/(tabs)') as any);
           }, 100);
@@ -146,7 +149,7 @@ export default function LoginScreen() {
       const tokens = await tokenRes.json();
       if (!tokens?.access_token) throw new Error('No access token returned');
 
-      await finishGoogleSignIn(tokens.access_token, getOrCreateUser, router, setToken, setUser);
+      await finishGoogleSignIn(tokens.access_token, getOrCreateUser, router, setToken, setUser, setIsNewUser);
     } catch (e: any) {
       console.error('[GoogleSignIn] Error:', e?.code, e?.message, e);
       Alert.alert('Sign In Failed', e.message ?? 'Could not sign in with Google.');
@@ -189,6 +192,7 @@ export default function LoginScreen() {
       await storeSession(mockToken, user);
       setToken(mockToken);
       setUser(user as any);
+      if (isNew) setIsNewUser(true);
       setTimeout(() => {
         router.replace((isNew ? '/profile-setup' : '/(app)/(tabs)') as any);
       }, 100);
@@ -211,6 +215,7 @@ export default function LoginScreen() {
       await storeSession('dev_token_123', devUser);
       setToken('dev_token_123');
       setUser(devUser as any);
+      if (isNew) setIsNewUser(true);
       setTimeout(() => {
         router.replace((isNew ? '/profile-setup' : '/(app)/(tabs)') as any);
       }, 100);

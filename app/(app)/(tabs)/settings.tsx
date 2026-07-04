@@ -31,6 +31,10 @@ import { clearSession } from '../../../src/lib/auth';
 import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import { useSettingsStore } from '../../../src/stores/settingsStore';
+import { useLanguageStore } from '../../../src/stores/languageStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
+import { useTranslation } from '../../../src/i18n/useTranslation';
+import { LANGUAGES } from '../../../src/i18n/translations';
 import { syncAllToDevice, hasBeenSynced } from '../../../src/lib/deviceContacts';
 import { generateSalt, hashPIN, deriveKey } from '../../../src/lib/encryption';
 import Constants from 'expo-constants';
@@ -45,16 +49,17 @@ type SettingRow = {
   onToggle?: (v: boolean) => void;
   onPress?: () => void;
   danger?: boolean;
+  accent: string;
 };
 
-function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress, danger }: SettingRow) {
+function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress, danger, accent }: SettingRow) {
   return (
     <TouchableOpacity
       className="flex-row items-center px-5 py-4 border-b border-surface-700/50"
       onPress={onPress}
       disabled={toggle}
     >
-      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : '#6366F1'} />
+      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : accent} />
       <Text className={`flex-1 ml-4 text-base ${danger ? 'text-red-400' : 'text-slate-200'}`}>
         {label}
       </Text>
@@ -64,7 +69,7 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: '#334155', true: '#6366F1' }}
+          trackColor={{ false: '#334155', true: accent }}
           thumbColor="#fff"
         />
       ) : (
@@ -74,27 +79,24 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
   );
 }
 
-const LOCK_TIMEOUT_OPTIONS = [
-  { label: 'Immediately', seconds: 0 },
-  { label: '30 seconds',  seconds: 30 },
-  { label: '1 minute',    seconds: 60 },
-  { label: '5 minutes',   seconds: 300 },
-];
+const LOCK_TIMEOUT_SECONDS = [0, 30, 60, 300];
 
 // ─── PIN change modal ─────────────────────────────────────────────────────────
 
 const PIN_LEN = 6;
 const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','','0','del'];
 
-function PinDots({ pin }: { pin: string }) {
+function PinDots({ pin, accent }: { pin: string; accent: string }) {
   return (
     <View className="flex-row gap-x-3 my-4 justify-center">
       {Array.from({ length: PIN_LEN }).map((_, i) => (
         <View
           key={i}
-          className={`w-3 h-3 rounded-full border-2 ${
-            i < pin.length ? 'bg-primary-500 border-primary-500' : 'bg-transparent border-slate-500'
-          }`}
+          className="w-3 h-3 rounded-full border-2"
+          style={i < pin.length
+            ? { backgroundColor: accent, borderColor: accent }
+            : { backgroundColor: 'transparent', borderColor: '#64748B' }
+          }
         />
       ))}
     </View>
@@ -139,6 +141,10 @@ export default function SettingsScreen() {
     encryptionEnabled, pinConfigured, setEncryptionKey, setEncryptionEnabled, setPinConfigured,
   } = useSecurityStore();
   const { syncToPhone, setSyncToPhone } = useSettingsStore();
+  const { language, setLanguage } = useLanguageStore();
+  const { t } = useTranslation();
+  const theme = useAppTheme();
+  const [languageModalVisible, setLanguageModalVisible] = React.useState(false);
   const allContacts = useQuery(api.contacts.list, user?._id ? { userId: user._id } : 'skip');
   const updateProfile = useMutation(api.users.updateProfile);
   const setupPINMutation = useMutation(api.users.setupPIN);
@@ -194,14 +200,14 @@ export default function SettingsScreen() {
     if (pinModalMode === 'change-old') {
       const hash = await hashPIN(pin, encryptionConfig.pinSalt!);
       if (hash !== encryptionConfig.pinHash) {
-        Alert.alert('Incorrect PIN', 'The current PIN you entered is wrong.');
+        Alert.alert(t.incorrectPin, t.incorrectPinMsg);
         setPinInput('');
         return;
       }
       setPinOldHash(hash);
       setPinInput('');
       setPinModalMode('change-new');
-      setPinModalTitle('Enter New PIN');
+      setPinModalTitle(t.enterNewPin);
       return;
     }
 
@@ -209,16 +215,16 @@ export default function SettingsScreen() {
       setPinFirstNew(pin);
       setPinInput('');
       setPinModalMode('change-confirm');
-      setPinModalTitle('Confirm New PIN');
+      setPinModalTitle(t.confirmNewPin);
       return;
     }
 
     if (pinModalMode === 'change-confirm') {
       if (pin !== pinFirstNew) {
-        Alert.alert('PINs do not match', 'Please try again.');
+        Alert.alert(t.pinsMismatch, t.pinsMismatchMsg);
         setPinInput('');
         setPinModalMode('change-new');
-        setPinModalTitle('Enter New PIN');
+        setPinModalTitle(t.enterNewPin);
         return;
       }
       setPinLoading(true);
@@ -236,9 +242,9 @@ export default function SettingsScreen() {
         });
         setEncryptionKey(newKey);
         setPinModalVisible(false);
-        Alert.alert('PIN Updated', 'Your PIN has been changed. Your contacts will re-encrypt on next save.');
+        Alert.alert(t.pinUpdated, t.pinUpdatedMsg);
       } catch {
-        Alert.alert('Error', 'Could not update PIN. Please try again.');
+        Alert.alert(t.error, t.errorUpdatePin);
       } finally {
         setPinLoading(false);
         setPinInput('');
@@ -250,16 +256,16 @@ export default function SettingsScreen() {
       setPinFirstNew(pin);
       setPinInput('');
       setPinModalMode('enable-confirm');
-      setPinModalTitle('Confirm PIN');
+      setPinModalTitle(t.confirmPin);
       return;
     }
 
     if (pinModalMode === 'enable-confirm') {
       if (pin !== pinFirstNew) {
-        Alert.alert('PINs do not match', 'Please try again.');
+        Alert.alert(t.pinsMismatch, t.pinsMismatchMsg);
         setPinInput('');
         setPinModalMode('enable-new');
-        setPinModalTitle('Create PIN');
+        setPinModalTitle(t.createPin);
         return;
       }
       setPinLoading(true);
@@ -278,9 +284,9 @@ export default function SettingsScreen() {
         setEncryptionEnabled(true);
         setPinConfigured(true);
         setPinModalVisible(false);
-        Alert.alert('Encryption Enabled', 'Your contacts will now be encrypted with your PIN.');
+        Alert.alert(t.encryptionEnabled, t.encryptionEnabledMsg);
       } catch {
-        Alert.alert('Error', 'Could not enable encryption. Please try again.');
+        Alert.alert(t.error, t.errorEnableEncryption);
       } finally {
         setPinLoading(false);
         setPinInput('');
@@ -291,7 +297,7 @@ export default function SettingsScreen() {
     if (pinModalMode === 'disable') {
       const hash = await hashPIN(pin, encryptionConfig.pinSalt!);
       if (hash !== encryptionConfig.pinHash) {
-        Alert.alert('Incorrect PIN', 'The PIN you entered is wrong.');
+        Alert.alert(t.incorrectPin, t.incorrectPinMsg2);
         setPinInput('');
         return;
       }
@@ -303,9 +309,9 @@ export default function SettingsScreen() {
         setEncryptionEnabled(false);
         setPinConfigured(false);
         setPinModalVisible(false);
-        Alert.alert('Encryption Disabled', 'Contact data is no longer encrypted.');
+        Alert.alert(t.encryptionDisabled, t.encryptionDisabledMsg);
       } catch {
-        Alert.alert('Error', 'Could not disable encryption. Please try again.');
+        Alert.alert(t.error, t.errorDisableEncryption);
       } finally {
         setPinLoading(false);
         setPinInput('');
@@ -319,7 +325,7 @@ export default function SettingsScreen() {
     setPinOldHash('');
     setPinFirstNew('');
     setPinModalMode('change-old');
-    setPinModalTitle('Enter Current PIN');
+    setPinModalTitle(t.enterCurrentPin);
     setPinModalVisible(true);
   };
 
@@ -327,23 +333,23 @@ export default function SettingsScreen() {
     setPinInput('');
     setPinFirstNew('');
     setPinModalMode('enable-new');
-    setPinModalTitle('Create PIN');
+    setPinModalTitle(t.createPin);
     setPinModalVisible(true);
   };
 
   const openDisableEncryption = () => {
     Alert.alert(
-      'Disable Encryption',
-      'This will remove encryption from all your contacts. Are you sure?',
+      t.disableEncryptionTitle,
+      t.disableEncryptionMsg,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Disable',
+          text: t.disable,
           style: 'destructive',
           onPress: () => {
             setPinInput('');
             setPinModalMode('disable');
-            setPinModalTitle('Enter PIN to Confirm');
+            setPinModalTitle(t.enterPinToConfirm);
             setPinModalVisible(true);
           },
         },
@@ -377,9 +383,9 @@ export default function SettingsScreen() {
       const updated = { ...user, phone: phone.trim() || undefined, linkedinUrl: fullLinkedinUrl };
       setUser(updated as any);
       await storeSession(token ?? '', updated);
-      Alert.alert('Saved', 'Profile updated successfully.');
+      Alert.alert(t.saved, t.profileUpdated);
     } catch {
-      Alert.alert('Error', 'Could not save profile. Please try again.');
+      Alert.alert(t.error, t.errorSaveProfile);
     } finally {
       setProfileSaving(false);
     }
@@ -405,10 +411,7 @@ export default function SettingsScreen() {
     if (value) {
       const available = await isBiometricAvailable();
       if (!available) {
-        Alert.alert(
-          'Not Available',
-          'Your device does not have biometric authentication enrolled. Set it up in device Settings first.',
-        );
+        Alert.alert(t.notAvailable, t.biometricNotAvailable);
         return;
       }
       const confirmed = await authenticate(`Confirm to enable ${biometricType} lock`);
@@ -418,32 +421,40 @@ export default function SettingsScreen() {
     await saveBiometricPreference(value).catch(() => {});
   };
 
+  const getLockTimeoutLabel = (seconds: number) => {
+    if (seconds === 0)   return t.immediately;
+    if (seconds === 30)  return t.seconds30;
+    if (seconds === 60)  return t.minute1;
+    if (seconds === 300) return t.minutes5;
+    return t.seconds30;
+  };
+
   const handleLockTimeout = () => {
-    const current = LOCK_TIMEOUT_OPTIONS.find((o) => o.seconds === lockTimeout)?.label ?? '30 seconds';
+    const current = getLockTimeoutLabel(lockTimeout);
     Alert.alert(
-      'Lock Timeout',
-      `Current: ${current}\n\nLock the app after being in background for:`,
+      t.lockTimeoutTitle,
+      `${t.lockTimeoutCurrent}: ${current}\n\n${t.lockTimeoutMsg}`,
       [
-        ...LOCK_TIMEOUT_OPTIONS.map(({ label, seconds }) => ({
-          text: label + (seconds === lockTimeout ? ' âœ“' : ''),
+        ...LOCK_TIMEOUT_SECONDS.map((seconds) => ({
+          text: getLockTimeoutLabel(seconds) + (seconds === lockTimeout ? ` (${t.selected})` : ''),
           onPress: async () => {
             setLockTimeout(seconds);
             await saveLockTimeout(seconds).catch(() => {});
           },
         })),
-        { text: 'Cancel', style: 'cancel' as const },
+        { text: t.cancel, style: 'cancel' as const },
       ],
     );
   };
 
   const handleSignOut = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      t.signOutTitle,
+      t.signOutMsg,
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t.cancel, style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t.signOut,
           style: 'destructive',
           onPress: async () => {
             await clearSession();
@@ -455,7 +466,8 @@ export default function SettingsScreen() {
     );
   };
 
-  const planLabel = plan === 'free' ? 'Free' : plan === 'personal_pro' ? 'Personal Pro' : 'Enterprise';
+  const planLabel = plan === 'free' ? t.planFree : plan === 'personal_pro' ? t.planPersonalPro : t.planEnterprise;
+  const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? 'English';
 
   return (
     <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
@@ -476,25 +488,62 @@ export default function SettingsScreen() {
 
           {pinLoading ? (
             <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color="#6366F1" />
-              <Text className="text-slate-400 mt-4">Updating encryption…</Text>
+              <ActivityIndicator size="large" color={theme.accent} />
+              <Text className="text-slate-400 mt-4">{t.updatingEncryption}</Text>
             </View>
           ) : (
             <>
-              <PinDots pin={pinInput} />
+              <PinDots pin={pinInput} accent={theme.accent} />
               <NumPad onPress={pinKey} />
             </>
           )}
         </View>
       </Modal>
 
+      {/* Language picker modal */}
+      <Modal
+        visible={languageModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <View className="flex-1 bg-surface-900 px-6 pt-12">
+          <View className="flex-row items-center mb-8">
+            <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+              <Ionicons name="close" size={24} color="#94a3b8" />
+            </TouchableOpacity>
+            <Text className="text-slate-50 text-xl font-semibold ml-4">{t.selectLanguage}</Text>
+          </View>
+          <ScrollView>
+            {LANGUAGES.map((lang) => (
+              <TouchableOpacity
+                key={lang.code}
+                className="flex-row items-center px-4 py-4 border-b border-surface-700/50"
+                onPress={async () => {
+                  await setLanguage(lang.code);
+                  setLanguageModalVisible(false);
+                }}
+              >
+                <View className="flex-1">
+                  <Text className="text-slate-100 text-base">{lang.nativeLabel}</Text>
+                  <Text className="text-slate-500 text-xs mt-0.5">{lang.label}</Text>
+                </View>
+                {language === lang.code && (
+                  <Ionicons name="checkmark" size={20} color={theme.accent} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Modal>
+
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Profile */}
         <View className="px-5 pt-6 pb-5">
-          <Text className="text-slate-50 text-2xl font-bold mb-5">Settings</Text>
+          <Text className="text-slate-50 text-2xl font-bold mb-5">{t.settings}</Text>
           <Card className="p-4 flex-row items-center">
-            <View className="w-14 h-14 bg-primary-800 rounded-full items-center justify-center">
-              <Text className="text-primary-300 text-xl font-bold">
+            <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: theme.accent + "30" }}>
+              <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "bold" }}>
                 {user?.name?.[0]?.toUpperCase() ?? 'U'}
               </Text>
             </View>
@@ -511,25 +560,25 @@ export default function SettingsScreen() {
         {/* Profile Details */}
         <View className="mb-6 px-5">
           <Text className="text-slate-500 text-xs uppercase tracking-widest mb-3">
-            Profile
+            {t.profile}
           </Text>
           <Card variant="outlined" className="p-4 gap-y-4">
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">Email</Text>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.email}</Text>
               <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
-                <Ionicons name="mail-outline" size={16} color="#6366F1" />
+                <Ionicons name="mail-outline" size={16} color={theme.accent} />
                 <Text className="text-slate-400 ml-2 text-sm flex-1">{user?.email}</Text>
               </View>
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">Phone Number</Text>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.phoneNumber}</Text>
               <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
-                <Ionicons name="call-outline" size={16} color="#6366F1" />
+                <Ionicons name="call-outline" size={16} color={theme.accent} />
                 <TextInput
                   value={phone}
                   onChangeText={setPhone}
-                  placeholder="Add phone number"
+                  placeholder={t.addPhoneNumber}
                   placeholderTextColor="#475569"
                   keyboardType="phone-pad"
                   className="flex-1 ml-2 text-sm"
@@ -539,7 +588,7 @@ export default function SettingsScreen() {
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">LinkedIn Profile</Text>
+              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.linkedinProfile}</Text>
               <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
                 <Ionicons name="logo-linkedin" size={16} color="#0A66C2" />
                 <Text className="text-slate-500 ml-2 text-sm">linkedin.com/in/</Text>
@@ -557,14 +606,27 @@ export default function SettingsScreen() {
               </View>
             </View>
 
+            {convexUser?.corporateEmail && (
+              <View>
+                <Text className="text-slate-400 text-xs mb-1 ml-1">Corporate Email</Text>
+                <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                  <Ionicons name="briefcase-outline" size={16} color={theme.accent} />
+                  <Text className="text-slate-300 ml-2 text-sm flex-1">{convexUser.corporateEmail}</Text>
+                  <View style={{ backgroundColor: theme.accent + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                    <Text style={{ color: theme.accent, fontSize: 10, fontWeight: '700' }}>ENTERPRISE</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             <TouchableOpacity
               onPress={handleSaveProfile}
               disabled={profileSaving}
-              className="bg-primary-500 rounded-xl py-3 items-center mt-1"
+              className="rounded-xl py-3 items-center mt-1" style={{ backgroundColor: theme.accent }}
             >
               {profileSaving
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text className="text-white text-sm font-semibold">Save Profile</Text>
+                : <Text className="text-white text-sm font-semibold">{t.saveProfile}</Text>
               }
             </TouchableOpacity>
           </Card>
@@ -573,83 +635,98 @@ export default function SettingsScreen() {
         {/* Subscription */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Subscription
+            {t.subscription}
           </Text>
           <Card variant="outlined" className="mx-5">
             <Row
               icon="flash-outline"
-              label="Current Plan"
+              label={t.currentPlan}
               value={planLabel}
               onPress={() => router.push('/(app)/upgrade')}
-            />
+            accent={theme.accent}
+              />
             {plan === 'free' && (
               <Row
                 icon="scan-outline"
-                label="Scans Used"
+                label={t.scansUsed}
                 value={`${scanCount} / ${scanLimit}`}
                 onPress={() => {}}
+              accent={theme.accent}
               />
             )}
             <Row
               icon="card-outline"
-              label="Upgrade to Pro"
+              label={t.upgradeToPro}
               badge="USD 10/yr"
               onPress={() => router.push('/(app)/upgrade')}
-            />
+            accent={theme.accent}
+              />
           </Card>
         </View>
 
         {/* Preferences */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Preferences
+            {t.preferences}
           </Text>
           <Card variant="outlined" className="mx-5">
             <Row
               icon="moon-outline"
-              label="Dark Mode"
+              label={t.darkMode}
               toggle
               toggleValue={darkMode}
               onToggle={setDarkMode}
-            />
+            accent={theme.accent}
+              />
             <Row
               icon="notifications-outline"
-              label="Notifications"
+              label={t.notifications}
               toggle
               toggleValue={notifications}
               onToggle={setNotifications}
-            />
+            accent={theme.accent}
+              />
             <Row
               icon="people-circle-outline"
-              label="Sync to Phone Contacts"
+              label={t.syncToPhoneContacts}
               toggle
               toggleValue={syncToPhone}
               onToggle={handleSyncToPhoneToggle}
-            />
-            <Row icon="language-outline"  label="Language"  value="English" onPress={() => {}} />
-            <Row icon="color-palette-outline" label="Theme" value="Indigo" onPress={() => {}} />
+            accent={theme.accent}
+              />
+            <Row
+              icon="language-outline"
+              label={t.language}
+              value={currentLanguageLabel}
+              onPress={() => setLanguageModalVisible(true)}
+            accent={theme.accent}
+              />
+            <Row icon="color-palette-outline" label={t.theme} value="Indigo" onPress={() => {}} accent={theme.accent}
+              />
           </Card>
         </View>
 
         {/* Security */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Security
+            {t.security}
           </Text>
           <Card variant="outlined" className="mx-5">
             <Row
               icon="finger-print-outline"
-              label={biometricAvailable ? `${biometricType} Lock` : 'Biometric Lock'}
+              label={biometricAvailable ? `${biometricType} Lock` : t.biometricLock}
               toggle
               toggleValue={biometricEnabled}
               onToggle={handleBiometricToggle}
-            />
+            accent={theme.accent}
+              />
             {biometricEnabled && (
               <Row
                 icon="timer-outline"
-                label="Lock Timeout"
-                value={LOCK_TIMEOUT_OPTIONS.find((o) => o.seconds === lockTimeout)?.label ?? '30 seconds'}
+                label={t.lockTimeout}
+                value={getLockTimeoutLabel(lockTimeout)}
                 onPress={handleLockTimeout}
+              accent={theme.accent}
               />
             )}
           </Card>
@@ -658,22 +735,20 @@ export default function SettingsScreen() {
         {/* Data Encryption */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Data Encryption
+            {t.dataEncryption}
           </Text>
           <Card variant="outlined" className="mx-5">
             <View className="px-5 py-4 border-b border-surface-700/50 flex-row items-center">
-              <Ionicons name="shield-checkmark-outline" size={20} color="#6366F1" />
+              <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
               <View className="flex-1 ml-4">
-                <Text className="text-slate-200 text-base">Contact Encryption</Text>
+                <Text className="text-slate-200 text-base">{t.contactEncryption}</Text>
                 <Text className="text-slate-500 text-xs mt-0.5">
-                  {encryptionEnabled
-                    ? 'Enabled — sensitive fields are encrypted with your PIN'
-                    : 'Disabled — contacts stored in plain text'}
+                  {encryptionEnabled ? t.encryptionEnabledDesc : t.encryptionDisabledDesc}
                 </Text>
               </View>
               <View className={`px-2 py-0.5 rounded-full ${encryptionEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>
                 <Text className={`text-xs font-medium ${encryptionEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
-                  {encryptionEnabled ? 'ON' : 'OFF'}
+                  {encryptionEnabled ? t.on : t.off}
                 </Text>
               </View>
             </View>
@@ -681,8 +756,9 @@ export default function SettingsScreen() {
             {!encryptionEnabled && (
               <Row
                 icon="lock-closed-outline"
-                label="Enable Encryption"
+                label={t.enableEncryption}
                 onPress={openEnableEncryption}
+              accent={theme.accent}
               />
             )}
 
@@ -690,15 +766,17 @@ export default function SettingsScreen() {
               <>
                 <Row
                   icon="key-outline"
-                  label="Change PIN"
+                  label={t.changePin}
                   onPress={openChangePIN}
-                />
+                accent={theme.accent}
+              />
                 <Row
                   icon="lock-open-outline"
-                  label="Disable Encryption"
+                  label={t.disableEncryption}
                   onPress={openDisableEncryption}
                   danger
-                />
+                accent={theme.accent}
+              />
               </>
             )}
           </Card>
@@ -707,23 +785,28 @@ export default function SettingsScreen() {
         {/* Organization */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Organization
+            {t.organization}
           </Text>
           <Card variant="outlined" className="mx-5">
-            <Row icon="business-outline"  label="My Organization" onPress={() => router.push('/(app)/org/')} />
-            <Row icon="people-outline"    label="Follow-ups"      onPress={() => router.push('/(app)/follow-ups')} />
+            <Row icon="business-outline" label={t.myOrganization} onPress={() => router.push('/(app)/org/')} accent={theme.accent}
+              />
+            <Row icon="people-outline"   label={t.followUps}      onPress={() => router.push('/(app)/follow-ups')} accent={theme.accent}
+              />
           </Card>
         </View>
 
         {/* Data */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Data
+            {t.data}
           </Text>
           <Card variant="outlined" className="mx-5">
-            <Row icon="download-outline"     label="Export Contacts" onPress={() => router.push('/(app)/export')} />
-            <Row icon="cloud-upload-outline" label="Import Contacts" onPress={() => router.push('/(app)/import')} />
-            <Row icon="sync-outline"         label="Sync Status"     value="Synced" onPress={() => {}} />
+            <Row icon="download-outline"     label={t.exportContacts} onPress={() => router.push('/(app)/export')} accent={theme.accent}
+              />
+            <Row icon="cloud-upload-outline" label={t.importContacts} onPress={() => router.push('/(app)/import')} accent={theme.accent}
+              />
+            <Row icon="sync-outline"         label={t.syncStatus}     value={t.synced} onPress={() => {}} accent={theme.accent}
+              />
           </Card>
         </View>
 
@@ -731,13 +814,13 @@ export default function SettingsScreen() {
         {isAdmin && (
           <View className="mb-6">
             <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-              Super Admin
+              {t.superAdmin}
             </Text>
             <Card variant="outlined" className="mx-5">
               <View className="px-5 py-3 border-b border-surface-700/50">
                 <View className="flex-row items-center gap-x-2">
                   <View className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <Text className="text-emerald-400 text-xs font-medium">Admin Access Active</Text>
+                  <Text className="text-emerald-400 text-xs font-medium">{t.adminAccessActive}</Text>
                 </View>
                 <Text className="text-slate-500 text-xs mt-1">
                   App v{Constants.expoConfig?.version ?? '—'} · {user?.email}
@@ -747,6 +830,7 @@ export default function SettingsScreen() {
                 icon="rocket-outline"
                 label="Release Management"
                 onPress={() => router.push('/(app)/admin/releases')}
+              accent={theme.accent}
               />
             </Card>
           </View>
@@ -755,17 +839,20 @@ export default function SettingsScreen() {
         {/* Account */}
         <View className="mb-6">
           <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
-            Account
+            {t.account}
           </Text>
           <Card variant="outlined" className="mx-5">
-            <Row icon="shield-outline"    label="Privacy" onPress={() => {}} />
-            <Row icon="information-circle-outline" label="About" value="v1.0.0" onPress={() => {}} />
+            <Row icon="shield-outline"             label={t.privacyPolicy} onPress={() => router.push('/(app)/privacy')} accent={theme.accent}
+              />
+            <Row icon="information-circle-outline" label={t.about}         value="v1.0.0" onPress={() => {}} accent={theme.accent}
+              />
             <Row
               icon="log-out-outline"
-              label="Sign Out"
+              label={t.signOut}
               onPress={handleSignOut}
               danger
-            />
+            accent={theme.accent}
+              />
           </Card>
         </View>
       </ScrollView>

@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import { Colors } from '../../../src/constants/theme';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 type DetectionState = 'scanning' | 'detected' | 'capturing';
 
@@ -34,6 +35,7 @@ export default function ScanScreen() {
   const captureTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { hasScansRemaining, showPaywall } = useSubscriptionStore();
+  const theme = useAppTheme();
 
   const doCapture = useCallback(async () => {
     if (!cameraRef.current) return;
@@ -116,7 +118,7 @@ export default function ScanScreen() {
   if (!permission) {
     return (
       <View className="flex-1 bg-surface-900 items-center justify-center">
-        <ActivityIndicator color={Colors.primary[500]} size="large" />
+        <ActivityIndicator color={theme.accent} size="large" />
       </View>
     );
   }
@@ -132,7 +134,8 @@ export default function ScanScreen() {
           CardVault needs camera access to scan business cards.
         </Text>
         <TouchableOpacity
-          className="mt-8 bg-primary-500 px-8 py-4 rounded-2xl"
+          className="mt-8 px-8 py-4 rounded-2xl"
+          style={{ backgroundColor: theme.accent }}
           onPress={requestPermission}
         >
           <Text className="text-white text-base font-semibold">Grant Permission</Text>
@@ -144,18 +147,24 @@ export default function ScanScreen() {
   // â”€â”€ Detection state helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const frameColor =
     detection === 'detected'  ? 'border-emerald-400' :
-    detection === 'capturing' ? 'border-primary-500' :
+    detection === 'capturing' ? 'border-white/90' :
     'border-white/90';
 
+  const frameAccentColor =
+    detection === 'capturing' ? theme.accent : undefined;
+
   const statusLabel =
-    detection === 'detected'  ? 'Card detected â€” hold steady...' :
+    detection === 'detected'  ? 'Card detected - hold steady...' :
     detection === 'capturing' ? 'Capturing...' :
     'Align business card within the frame';
 
   const statusColor =
     detection === 'detected'  ? 'text-emerald-400' :
-    detection === 'capturing' ? 'text-primary-400' :
+    detection === 'capturing' ? undefined :
     'text-white/70';
+
+  const statusAccentColor =
+    detection === 'capturing' ? theme.accent : undefined;
 
   // â”€â”€ UI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
@@ -204,7 +213,7 @@ export default function ScanScreen() {
             )}
           </View>
 
-          <Text className={`text-sm mt-5 ${statusColor}`}>{statusLabel}</Text>
+          <Text className={`text-sm mt-5 ${statusColor ?? ''}`} style={statusAccentColor ? { color: statusAccentColor } : undefined}>{statusLabel}</Text>
 
           {/* Auto-detect badge */}
           <View className="flex-row items-center mt-3 bg-black/50 px-3 py-1.5 rounded-full">
@@ -234,7 +243,7 @@ export default function ScanScreen() {
               className="w-20 h-20 rounded-full border-4 border-white items-center justify-center"
               style={{
                 backgroundColor:
-                  detection === 'capturing' ? '#6366F1' :
+                  detection === 'capturing' ? theme.accent :
                   detection === 'detected'  ? 'rgba(52,211,153,0.25)' :
                   'rgba(255,255,255,0.15)',
               }}
@@ -255,7 +264,7 @@ export default function ScanScreen() {
           </View>
 
           <Text className="text-white/40 text-xs text-center mt-3">
-            Card is detected automatically Â· tap shutter to capture manually
+            Card is detected automatically · tap shutter to capture manually
           </Text>
         </SafeAreaView>
       </CameraView>
