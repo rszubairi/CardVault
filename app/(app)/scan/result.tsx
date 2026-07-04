@@ -24,6 +24,7 @@ import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import EventPicker from '../../../src/components/EventPicker';
 import { CalendarEvent } from '../../../src/lib/calendar';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
 
 async function uploadImageToConvex(
   localUri: string,
@@ -49,6 +50,7 @@ async function uploadImageToConvex(
 export default function ScanResultScreen() {
   const { imageUri } = useLocalSearchParams<{ imageUri: string }>();
   const router = useRouter();
+  const theme = useAppTheme();
   const { user } = useAuthStore();
   const { incrementScanCount } = useSubscriptionStore();
   const { syncToPhone } = useSettingsStore();
@@ -236,17 +238,17 @@ export default function ScanResultScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
       {/* Header */}
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 16 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="text-slate-50 text-lg font-bold flex-1">Review Card</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700', flex: 1 }}>Review Card</Text>
         {ocr && (
-          <View className="flex-row items-center bg-emerald-900/50 px-3 py-1 rounded-full">
-            <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-            <Text className="text-emerald-400 text-xs ml-1">{ocr.confidence}% match</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.success + '30', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 }}>
+            <Ionicons name="checkmark-circle" size={14} color={theme.success} />
+            <Text style={{ color: theme.success, fontSize: 12, marginLeft: 4 }}>{ocr.confidence}% match</Text>
           </View>
         )}
       </View>
@@ -266,16 +268,16 @@ export default function ScanResultScreen() {
         {/* OCR Loading */}
         {scanning && (
           <Card className="p-6 items-center mb-6">
-            <ActivityIndicator color="#6366F1" size="large" />
-            <Text className="text-slate-300 text-sm mt-3">Extracting card information...</Text>
+            <ActivityIndicator color={theme.accent} size="large" />
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 12 }}>Extracting card information...</Text>
           </Card>
         )}
 
         {/* AI review in progress */}
         {reviewing && !scanning && (
-          <View className="flex-row items-center bg-primary-900/30 border border-primary-700/40 rounded-xl px-4 py-3 mb-4">
-            <ActivityIndicator color="#6366F1" size="small" />
-            <Text className="text-primary-300 text-xs ml-3">AI reviewing extraction for errors...</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.accentTint, borderWidth: 1, borderColor: theme.accent + '40', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 }}>
+            <ActivityIndicator color={theme.accent} size="small" />
+            <Text style={{ color: theme.accent, fontSize: 12, marginLeft: 12 }}>AI reviewing extraction for errors...</Text>
           </View>
         )}
 
@@ -283,23 +285,23 @@ export default function ScanResultScreen() {
         {duplicate && !scanning && (
           <TouchableOpacity
             onPress={() => router.replace({ pathname: '/(app)/contact/[id]', params: { id: duplicate._id } })}
-            className="flex-row items-center bg-amber-900/30 border border-amber-600/40 rounded-xl px-4 py-3 mb-4"
+            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.warning + '20', borderWidth: 1, borderColor: theme.warning + '40', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 }}
           >
-            <Ionicons name="warning-outline" size={18} color="#F59E0B" />
-            <View className="flex-1 ml-3">
-              <Text className="text-amber-400 text-xs font-semibold">Possible duplicate</Text>
-              <Text className="text-amber-300/80 text-xs mt-0.5">
+            <Ionicons name="warning-outline" size={18} color={theme.warning} />
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={{ color: theme.warning, fontSize: 12, fontWeight: '600' }}>Possible duplicate</Text>
+              <Text style={{ color: theme.warning, opacity: 0.8, fontSize: 12, marginTop: 2 }}>
                 {[duplicate.firstName, duplicate.lastName].filter(Boolean).join(' ')} already exists — tap to view
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color="#F59E0B" />
+            <Ionicons name="chevron-forward" size={14} color={theme.warning} />
           </TouchableOpacity>
         )}
 
         {/* Edit Fields */}
         {!scanning && (
           <>
-            <Text className="text-slate-400 text-xs uppercase tracking-widest mb-4">
+            <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 16 }}>
               Contact Details
             </Text>
 
@@ -368,16 +370,16 @@ export default function ScanResultScreen() {
             {/* Event badge */}
             <TouchableOpacity
               onPress={() => setEventPickerOpen(true)}
-              className="flex-row items-center bg-surface-800 border border-surface-700 rounded-xl px-4 py-3 mb-4"
+              style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surfaceAlt, borderWidth: 1, borderColor: theme.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16 }}
             >
-              <Ionicons name="location-outline" size={18} color="#6366F1" />
-              <View className="flex-1 ml-3">
-                <Text className="text-slate-400 text-xs">Met at event</Text>
-                <Text className="text-slate-200 text-sm mt-0.5">
+              <Ionicons name="location-outline" size={18} color={theme.accent} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={{ color: theme.textMuted, fontSize: 12 }}>Met at event</Text>
+                <Text style={{ color: theme.textPrimary, fontSize: 14, marginTop: 2 }}>
                   {selectedEvent ? selectedEvent.title : 'Tap to select an event'}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#475569" />
+              <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
             </TouchableOpacity>
 
             <Button
