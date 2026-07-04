@@ -40,166 +40,104 @@ function palette(seed: string) {
 
 const SCREEN_W   = Dimensions.get('window').width;
 const H_PAD      = 20;
-const CARD_W     = SCREEN_W - H_PAD * 2;
-const CARD_H     = 160;
-const PEEK_H     = 60; // how much of the next card is visible beneath
+const GRID_GAP   = 12;
+const CARD_W     = (SCREEN_W - H_PAD * 2 - GRID_GAP) / 2;
+const CARD_H     = 170;
 
 type ConvexContact = Doc<'contacts'>;
 
-// ─── Full-width stacked business card ────────────────────────────────────────
+// ─── Grid business card ────────────────────────────────────────────────────
 
 function BusinessCard({
   contact,
-  index,
-  total,
   onPress,
 }: {
   contact: ConvexContact;
-  index: number;
-  total: number;
   onPress: () => void;
 }) {
   const fullName = `${contact.firstName} ${contact.lastName}`.trim();
   const initials = `${contact.firstName?.[0] ?? ''}${contact.lastName?.[0] ?? ''}`.toUpperCase();
   const seed     = contact.company ?? fullName;
   const pal      = palette(seed);
-  const isLast   = index === total - 1;
 
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.9}
       style={{
-        // Higher index = higher zIndex → each card slides OVER the one above it
-        zIndex:     index + 1,
-        elevation:  index + 1,
-        marginBottom: isLast ? 24 : -(CARD_H - PEEK_H),
-        paddingHorizontal: H_PAD,
+        width:           CARD_W,
+        height:          CARD_H,
+        borderRadius:    18,
+        backgroundColor: pal.bg,
+        overflow:        'hidden',
+        padding:         14,
       }}
     >
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.9}
-        style={{
-          width:         CARD_W,
-          height:        CARD_H,
-          borderRadius:  20,
-          backgroundColor: pal.bg,
-          overflow:      'hidden',
-          shadowColor:   '#000',
-          shadowOffset:  { width: 0, height: 8 },
-          shadowOpacity: 0.45,
-          shadowRadius:  14,
-        }}
-      >
-        {/* Decorative stripe */}
-        <View
-          style={{
-            position:        'absolute',
-            top:             0,
-            left:            0,
-            right:           0,
-            height:          4,
-            backgroundColor: pal.accent,
-            opacity:         0.9,
-          }}
-        />
-
-        {/* Diagonal decoration */}
-        <View
-          style={{
-            position:        'absolute',
-            top:             -60,
-            right:           -40,
-            width:           160,
-            height:          160,
-            borderRadius:    80,
-            backgroundColor: pal.stripe,
-            opacity:         0.25,
-          }}
-        />
-
-        {/* Content */}
-        <View style={{ flex: 1, padding: 18, justifyContent: 'space-between' }}>
-          {/* Top row: company prominent */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flex: 1, marginRight: 12 }}>
-              <Text
-                style={{
-                  color:       pal.accent,
-                  fontSize:    11,
-                  fontWeight:  '700',
-                  letterSpacing: 1.2,
-                  textTransform: 'uppercase',
-                }}
-                numberOfLines={1}
-              >
-                {contact.company ?? '—'}
-              </Text>
-            </View>
-            {contact.favorite && (
-              <Ionicons name="star" size={14} color="#FBBF24" />
-            )}
-          </View>
-
-          {/* Name + designation — the hero content */}
-          <View>
-            <Text
-              style={{ color: '#F8FAFC', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 }}
-              numberOfLines={1}
-            >
-              {fullName}
-            </Text>
-            {contact.designation ? (
-              <Text
-                style={{ color: pal.text, fontSize: 12, marginTop: 3, opacity: 0.85, fontWeight: '500' }}
-                numberOfLines={1}
-              >
-                {contact.designation}
-              </Text>
-            ) : null}
-          </View>
-
-          {/* Bottom row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              {contact.email && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="mail-outline" size={11} color={pal.accent} style={{ opacity: 0.7 }} />
-                  <Text style={{ color: pal.text, fontSize: 10, opacity: 0.65 }} numberOfLines={1}>
-                    {contact.email.split('@')[1] ?? contact.email}
-                  </Text>
-                </View>
-              )}
-              {(contact.phone || contact.mobile) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="call-outline" size={11} color={pal.accent} style={{ opacity: 0.7 }} />
-                  <Text style={{ color: pal.text, fontSize: 10, opacity: 0.65 }}>
-                    {(contact.phone ?? contact.mobile ?? '').slice(-4).padStart(4, '·')}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Initials chip */}
-            <View
-              style={{
-                width:           34,
-                height:          34,
-                borderRadius:    17,
-                backgroundColor: pal.accent + '30',
-                borderWidth:     1.5,
-                borderColor:     pal.accent + '60',
-                alignItems:      'center',
-                justifyContent:  'center',
-              }}
-            >
-              <Text style={{ color: pal.accent, fontSize: 11, fontWeight: '800' }}>
-                {initials || '?'}
-              </Text>
-            </View>
-          </View>
+      {contact.favorite && (
+        <View style={{ position: 'absolute', top: 10, right: 10 }}>
+          <Ionicons name="star" size={13} color="#FBBF24" />
         </View>
-      </TouchableOpacity>
-    </View>
+      )}
+
+      {/* Company tag + underline */}
+      <View>
+        <Text
+          style={{
+            color:         pal.accent,
+            fontSize:      10,
+            fontWeight:    '700',
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+          }}
+          numberOfLines={1}
+        >
+          {contact.company ?? '—'}
+        </Text>
+        <View style={{ height: 1, backgroundColor: pal.accent, opacity: 0.4, marginTop: 6, marginBottom: 10 }} />
+      </View>
+
+      {/* Name + designation */}
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{ color: '#F8FAFC', fontSize: 16, fontWeight: '800', letterSpacing: -0.3 }}
+          numberOfLines={2}
+        >
+          {fullName}
+        </Text>
+        {contact.designation ? (
+          <Text
+            style={{ color: pal.text, fontSize: 12, marginTop: 3, opacity: 0.85, fontWeight: '500' }}
+            numberOfLines={1}
+          >
+            {contact.designation}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Bottom row: domain + avatar */}
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Text
+          style={{ color: pal.text, fontSize: 10, opacity: 0.6, flex: 1, marginRight: 8 }}
+          numberOfLines={1}
+        >
+          {contact.companyDomain ?? contact.website ?? ''}
+        </Text>
+        <View
+          style={{
+            width:           30,
+            height:          30,
+            borderRadius:    15,
+            backgroundColor: pal.accent + '30',
+            alignItems:      'center',
+            justifyContent:  'center',
+          }}
+        >
+          <Text style={{ color: pal.accent, fontSize: 10, fontWeight: '800' }}>
+            {initials || '?'}
+          </Text>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 }
 
@@ -239,7 +177,7 @@ export default function ContactsScreen() {
             <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>Contacts</Text>
             {contacts !== undefined && (
               <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>
-                {filtered.length} {filtered.length === 1 ? 'card' : 'cards'}
+                {filtered.length} {filtered.length === 1 ? 'contact' : 'contacts'}
               </Text>
             )}
           </View>
@@ -307,22 +245,23 @@ export default function ContactsScreen() {
         </View>
       )}
 
-      {/* Stacked card list */}
+      {/* Card grid */}
       {contacts !== undefined && filtered.length > 0 && (
         <ScrollView
           contentContainerStyle={{
+            paddingHorizontal: H_PAD,
             paddingTop: 8,
-            // Total height: last card full height + (n-1) * PEEK_H
-            paddingBottom: 0,
+            paddingBottom: 24,
+            flexDirection: 'row',
+            flexWrap: 'wrap',
+            gap: GRID_GAP,
           }}
           showsVerticalScrollIndicator={false}
         >
-          {filtered.map((contact, index) => (
+          {filtered.map((contact) => (
             <BusinessCard
               key={contact._id}
               contact={contact}
-              index={index}
-              total={filtered.length}
               onPress={() =>
                 router.push({ pathname: '/(app)/contact/[id]', params: { id: contact._id } })
               }

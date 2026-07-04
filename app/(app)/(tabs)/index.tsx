@@ -12,17 +12,37 @@ import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import Card from '../../../src/components/ui/Card';
 import { useAuthStore } from '../../../src/stores/authStore';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
 import { useAppTheme } from '../../../src/theme/useAppTheme';
 
-function ContactInitials({ name, accent }: { name: string; accent: string }) {
+function ContactInitials({
+  name,
+  accent,
+  size = 40,
+  filled = false,
+}: {
+  name: string;
+  accent: string;
+  size?: number;
+  filled?: boolean;
+}) {
   const parts   = name.trim().split(' ');
   const initials = `${parts[0]?.[0] ?? ''}${parts[1]?.[0] ?? ''}`.toUpperCase();
   return (
-    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: accent + '30', alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: accent, fontSize: 14, fontWeight: 'bold' }}>{initials || '?'}</Text>
+    <View
+      style={{
+        width:  size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: filled ? accent : accent + '30',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Text style={{ color: filled ? '#fff' : accent, fontSize: size * 0.35, fontWeight: 'bold' }}>
+        {initials || '?'}
+      </Text>
     </View>
   );
 }
@@ -54,20 +74,22 @@ export default function DashboardScreen() {
   const refreshing = false;
   const onRefresh  = () => setRefreshKey((k) => k + 1);
 
-  const firstName = user?.name?.split(' ')[0] ?? 'there';
+  const firstName   = user?.name?.split(' ')[0] ?? 'there';
+  const fullName    = user?.name ?? 'there';
+  const hasFollowUps = (stats?.followUpsDue ?? 0) > 0;
 
   const quickActions = [
-    { icon: 'scan',           label: 'Scan',   href: '/(app)/(tabs)/scan',     color: theme.accent },
-    { icon: 'search',         label: 'Search', href: '/(app)/(tabs)/contacts', color: '#10B981' },
-    { icon: 'person-add',     label: 'Add',    href: '/(app)/contact/new',     color: '#3B82F6' },
-    { icon: 'download-outline', label: 'Export', href: '/(app)/export',        color: '#F59E0B' },
+    { icon: 'download-outline', label: 'Export', href: '/(app)/export',           color: '#F59E0B', highlighted: false },
+    { icon: 'person-add',       label: 'Add',    href: '/(app)/contact/new',      color: theme.accent, highlighted: false },
+    { icon: 'search',           label: 'Search', href: '/(app)/(tabs)/contacts', color: '#10B981', highlighted: false },
+    { icon: 'scan',             label: 'Scan',   href: '/(app)/(tabs)/scan',     color: theme.accent, highlighted: false },
   ] as const;
 
   const statCards = [
-    { label: 'Added Today',    value: stats?.today        ?? 0, icon: 'today-outline',         color: theme.accent },
-    { label: 'This Week',      value: stats?.thisWeek     ?? 0, icon: 'calendar-outline',      color: '#10B981' },
-    { label: 'Total',          value: stats?.total        ?? 0, icon: 'people-outline',        color: '#3B82F6' },
     { label: 'Follow-ups Due', value: stats?.followUpsDue ?? 0, icon: 'notifications-outline', color: '#EF4444' },
+    { label: 'Total',          value: stats?.total        ?? 0, icon: 'people-outline',        color: '#3B82F6' },
+    { label: 'This Week',      value: stats?.thisWeek     ?? 0, icon: 'calendar-outline',      color: '#10B981' },
+    { label: 'Added Today',    value: stats?.today        ?? 0, icon: 'today-outline',         color: theme.accent },
   ];
 
   return (
@@ -81,15 +103,35 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View className="px-5 pt-6 pb-4 flex-row items-center justify-between">
-          <View>
-            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Good day,</Text>
-            <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>{firstName}</Text>
+          <View className="flex-row items-center flex-1">
+            <View style={{ marginRight: 12 }}>
+              <ContactInitials name={fullName} accent={theme.accent} size={44} filled />
+              {hasFollowUps && (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: -2,
+                    right: -2,
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#EF4444',
+                    borderWidth: 2,
+                    borderColor: theme.bg,
+                  }}
+                />
+              )}
+            </View>
+            <View>
+              <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Good day,</Text>
+              <Text style={{ color: theme.textPrimary, fontSize: 22, fontWeight: '700' }}>{firstName}</Text>
+            </View>
           </View>
           <TouchableOpacity
             style={{ width: 40, height: 40, backgroundColor: theme.surfaceAlt, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}
             onPress={() => router.push('/(app)/(tabs)/settings')}
           >
-            <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
+            <Ionicons name="notifications-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -97,10 +139,10 @@ export default function DashboardScreen() {
         {plan === 'free' && (
           <TouchableOpacity
             className="mx-5 mb-5 rounded-2xl px-4 py-3 flex-row items-center"
-            style={{ backgroundColor: theme.accentFaint, borderWidth: 1, borderColor: theme.accent + '40' }}
+            style={{ backgroundColor: theme.accentTint, borderWidth: 1, borderColor: theme.accent + '30' }}
             onPress={() => router.push('/(app)/upgrade')}
           >
-            <Ionicons name="flash" size={18} color="#FBBF24" />
+            <Ionicons name="sparkles" size={18} color={theme.accent} />
             <View className="flex-1 ml-3">
               <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '600' }}>
                 {scanCount} / {scanLimit} free scans used
@@ -112,7 +154,7 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Stats strip */}
+        {/* Overview — 2x2 grid */}
         <View className="px-5 mb-5">
           <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Overview
@@ -121,7 +163,7 @@ export default function DashboardScreen() {
             {statCards.map(({ label, value, icon, color }) => (
               <View
                 key={label}
-                style={{ flex: 1, backgroundColor: theme.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, alignItems: 'center' }}
+                style={{ flex: 1, minWidth: 0, flexShrink: 1, backgroundColor: theme.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, alignItems: 'center' }}
               >
                 <Ionicons name={icon as any} size={16} color={color} />
                 {stats === undefined ? (
@@ -143,25 +185,42 @@ export default function DashboardScreen() {
             Quick Actions
           </Text>
           <View className="flex-row gap-2">
-            {quickActions.map(({ icon, label, href, color }) => (
+            {quickActions.map(({ icon, label, href, color, highlighted }) => (
               <TouchableOpacity
                 key={label}
-                style={{ flex: 1, backgroundColor: theme.surface, borderRadius: 16, paddingVertical: 12, alignItems: 'center' }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  flexShrink: 1,
+                  backgroundColor: highlighted ? theme.accent : theme.surface,
+                  borderRadius: 16,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                }}
                 onPress={() => router.push(href as any)}
               >
                 <View
                   className="w-9 h-9 rounded-xl items-center justify-center mb-1.5"
-                  style={{ backgroundColor: color + '22' }}
+                  style={{ backgroundColor: highlighted ? 'rgba(255,255,255,0.2)' : color + '22' }}
                 >
-                  <Ionicons name={icon as any} size={18} color={color} />
+                  <Ionicons name={icon as any} size={18} color={highlighted ? '#fff' : color} />
                 </View>
-                <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '500', textAlign: 'center' }}>{label}</Text>
+                <Text
+                  style={{
+                    color: highlighted ? '#fff' : theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: '500',
+                    textAlign: 'center',
+                  }}
+                >
+                  {label}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Recent Contacts */}
+        {/* Recent Contacts — vertical list */}
         <View className="px-5">
           <View className="flex-row items-center justify-between mb-3">
             <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2 }}>
@@ -173,15 +232,19 @@ export default function DashboardScreen() {
           </View>
 
           {recentContacts === undefined && (
-            <Card className="p-6 items-center">
+            <View
+              style={{ backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border, padding: 24, alignItems: 'center' }}
+            >
               <ActivityIndicator color={theme.accent} />
-            </Card>
+            </View>
           )}
 
           {recentContacts?.length === 0 && (
-            <Card className="p-10 items-center">
-              <Ionicons name="scan-outline" size={40} color="#475569" />
-              <Text className="text-slate-400 text-sm mt-3 text-center">
+            <View
+              style={{ backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border, padding: 40, alignItems: 'center' }}
+            >
+              <Ionicons name="scan-outline" size={40} color={theme.textMuted} />
+              <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 12, textAlign: 'center' }}>
                 No contacts yet.{'\n'}Scan your first business card to get started.
               </Text>
               <TouchableOpacity
@@ -191,34 +254,43 @@ export default function DashboardScreen() {
               >
                 <Text className="text-white text-sm font-semibold">Scan a Card</Text>
               </TouchableOpacity>
-            </Card>
+            </View>
           )}
 
           {recentContacts && recentContacts.length > 0 && (
-            <Card className="overflow-hidden">
+            <View
+              style={{ backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border, overflow: 'hidden' }}
+            >
               {recentContacts.map((contact, index) => {
-                const fullName = `${contact.firstName} ${contact.lastName}`.trim();
-                const isLast   = index === recentContacts.length - 1;
+                const contactName = `${contact.firstName} ${contact.lastName}`.trim();
+                const isLast      = index === recentContacts.length - 1;
                 return (
                   <TouchableOpacity
                     key={contact._id}
                     onPress={() => router.push({ pathname: '/(app)/contact/[id]', params: { id: contact._id } })}
-                    className={`flex-row items-center px-4 py-3 ${isLast ? '' : 'border-b border-surface-700'}`}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      borderBottomWidth: isLast ? 0 : 1,
+                      borderBottomColor: theme.border,
+                    }}
                   >
-                    <ContactInitials name={fullName} accent={theme.accent} />
+                    <ContactInitials name={contactName} accent={theme.accent} filled />
                     <View className="flex-1 ml-3">
-                      <Text className="text-slate-200 text-sm font-medium">{fullName}</Text>
+                      <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '600' }}>{contactName}</Text>
                       {(contact.designation || contact.company) && (
-                        <Text className="text-slate-500 text-xs mt-0.5" numberOfLines={1}>
+                        <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
                           {[contact.designation, contact.company].filter(Boolean).join(' · ')}
                         </Text>
                       )}
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color="#334155" />
+                    <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
                   </TouchableOpacity>
                 );
               })}
-            </Card>
+            </View>
           )}
         </View>
       </ScrollView>
