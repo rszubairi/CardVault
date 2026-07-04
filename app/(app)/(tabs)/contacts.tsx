@@ -231,14 +231,14 @@ export default function ContactsScreen() {
   }, [contacts, query, filterFavorites]);
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
       {/* Header */}
       <View className="px-5 pt-5 pb-4">
         <View className="flex-row items-center justify-between mb-4">
           <View>
-            <Text className="text-slate-50 text-2xl font-bold">Contacts</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>Contacts</Text>
             {contacts !== undefined && (
-              <Text className="text-slate-500 text-xs mt-0.5">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>
                 {filtered.length} {filtered.length === 1 ? 'card' : 'cards'}
               </Text>
             )}
@@ -246,7 +246,7 @@ export default function ContactsScreen() {
           <View className="flex-row gap-2">
             <TouchableOpacity
               onPress={() => setFilterFavorites(!filterFavorites)}
-              className={`w-9 h-9 rounded-full items-center justify-center ${filterFavorites ? 'bg-amber-500' : 'bg-surface-800'}`}
+              style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: filterFavorites ? '#F59E0B' : theme.surfaceAlt }}
             >
               <Ionicons name="star" size={18} color={filterFavorites ? '#fff' : '#94A3B8'} />
             </TouchableOpacity>
@@ -261,12 +261,12 @@ export default function ContactsScreen() {
         </View>
 
         {/* Search */}
-        <View className="flex-row items-center bg-surface-800 rounded-xl px-4 py-3">
-          <Ionicons name="search" size={18} color="#64748B" />
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: theme.surface, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+          <Ionicons name="search" size={18} color={theme.textMuted} />
           <TextInput
-            className="flex-1 ml-3 text-slate-100 text-base"
+            style={{ flex: 1, marginLeft: 12, color: theme.textPrimary, fontSize: 16 }}
             placeholder="Search name, company, tag..."
-            placeholderTextColor="#64748B"
+            placeholderTextColor={theme.textMuted}
             value={query}
             onChangeText={setQuery}
             autoCorrect={false}

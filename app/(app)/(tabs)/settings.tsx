@@ -53,27 +53,28 @@ type SettingRow = {
 };
 
 function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress, danger, accent }: SettingRow) {
+  const theme = useAppTheme();
   return (
     <TouchableOpacity
-      className="flex-row items-center px-5 py-4 border-b border-surface-700/50"
+      style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border + '80' }}
       onPress={onPress}
       disabled={toggle}
     >
-      <Ionicons name={icon as any} size={20} color={danger ? '#EF4444' : accent} />
-      <Text className={`flex-1 ml-4 text-base ${danger ? 'text-red-400' : 'text-slate-200'}`}>
+      <Ionicons name={icon as any} size={20} color={danger ? theme.error : accent} />
+      <Text style={{ flex: 1, marginLeft: 16, fontSize: 16, color: danger ? theme.error : theme.textPrimary }}>
         {label}
       </Text>
       {badge && <Badge label={badge} variant="primary" />}
-      {value && <Text className="text-slate-500 text-sm">{value}</Text>}
+      {value && <Text style={{ color: theme.textMuted, fontSize: 14 }}>{value}</Text>}
       {toggle ? (
         <Switch
           value={toggleValue}
           onValueChange={onToggle}
-          trackColor={{ false: '#334155', true: accent }}
+          trackColor={{ false: theme.surfaceAlt, true: accent }}
           thumbColor="#fff"
         />
       ) : (
-        <Ionicons name="chevron-forward" size={16} color="#475569" />
+        <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
       )}
     </TouchableOpacity>
   );
@@ -104,23 +105,22 @@ function PinDots({ pin, accent }: { pin: string; accent: string }) {
 }
 
 function NumPad({ onPress }: { onPress: (k: string) => void }) {
+  const theme = useAppTheme();
   return (
-    <View className="w-full max-w-xs self-center">
+    <View style={{ width: '100%', maxWidth: 280, alignSelf: 'center' }}>
       {[0, 1, 2, 3].map((row) => (
-        <View key={row} className="flex-row justify-between mb-3">
+        <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
           {NUMPAD_KEYS.slice(row * 3, row * 3 + 3).map((key, col) => (
             <TouchableOpacity
               key={col}
               onPress={() => key && onPress(key)}
               disabled={!key}
-              className={`w-20 h-14 rounded-2xl items-center justify-center ${
-                key ? 'bg-surface-700' : 'opacity-0'
-              }`}
+              style={{ width: 80, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: key ? theme.surfaceAlt : 'transparent' }}
             >
               {key === 'del' ? (
-                <Ionicons name="backspace-outline" size={22} color="#e2e8f0" />
+                <Ionicons name="backspace-outline" size={22} color={theme.textPrimary} />
               ) : (
-                <Text className="text-slate-100 text-xl font-semibold">{key}</Text>
+                <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '600' }}>{key}</Text>
               )}
             </TouchableOpacity>
           ))}
@@ -140,7 +140,7 @@ export default function SettingsScreen() {
     biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout,
     encryptionEnabled, pinConfigured, setEncryptionKey, setEncryptionEnabled, setPinConfigured,
   } = useSecurityStore();
-  const { syncToPhone, setSyncToPhone } = useSettingsStore();
+  const { syncToPhone, setSyncToPhone, colorScheme, setColorScheme } = useSettingsStore();
   const { language, setLanguage } = useLanguageStore();
   const { t } = useTranslation();
   const theme = useAppTheme();
@@ -160,7 +160,6 @@ export default function SettingsScreen() {
     user?._id ? { userId: user._id as any } : 'skip',
   );
   const convexUser = useQuery(api.users.getById, user?._id ? { userId: user._id as any } : 'skip');
-  const [darkMode, setDarkMode] = React.useState(true);
   const [notifications, setNotifications] = React.useState(true);
   const [biometricType, setBiometricType] = React.useState<BiometricType>('Biometric' as BiometricType);
   const [biometricAvailable, setBiometricAvailable] = React.useState(false);
@@ -398,6 +397,20 @@ export default function SettingsScreen() {
     }).catch(() => {});
   }, []);
 
+  const handleColorScheme = () => {
+    const labels: Record<string, string> = { dark: 'Dark', light: 'Light', system: 'System' };
+    Alert.alert(
+      'Appearance',
+      'Choose how CardVault looks',
+      [
+        { text: `Dark${colorScheme === 'dark' ? ' ✓' : ''}`,   onPress: () => setColorScheme('dark') },
+        { text: `Light${colorScheme === 'light' ? ' ✓' : ''}`, onPress: () => setColorScheme('light') },
+        { text: `System${colorScheme === 'system' ? ' ✓' : ''}`, onPress: () => setColorScheme('system') },
+        { text: 'Cancel', style: 'cancel' },
+      ],
+    );
+  };
+
   const handleSyncToPhoneToggle = async (value: boolean) => {
     await setSyncToPhone(value);
     if (value && allContacts && allContacts.length > 0) {
@@ -470,7 +483,7 @@ export default function SettingsScreen() {
   const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? 'English';
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
       {/* PIN entry modal */}
       <Modal
         visible={pinModalVisible}
@@ -478,18 +491,18 @@ export default function SettingsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => { if (!pinLoading) setPinModalVisible(false); }}
       >
-        <View className="flex-1 bg-surface-900 px-6 pt-12">
-          <View className="flex-row items-center mb-8">
+        <View style={{ flex: 1, backgroundColor: theme.bg, paddingHorizontal: 24, paddingTop: 48 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 32 }}>
             <TouchableOpacity onPress={() => { if (!pinLoading) setPinModalVisible(false); }}>
-              <Ionicons name="close" size={24} color="#94a3b8" />
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
             </TouchableOpacity>
-            <Text className="text-slate-50 text-xl font-semibold ml-4">{pinModalTitle}</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '600', marginLeft: 16 }}>{pinModalTitle}</Text>
           </View>
 
           {pinLoading ? (
-            <View className="flex-1 items-center justify-center">
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               <ActivityIndicator size="large" color={theme.accent} />
-              <Text className="text-slate-400 mt-4">{t.updatingEncryption}</Text>
+              <Text style={{ color: theme.textSecondary, marginTop: 16 }}>{t.updatingEncryption}</Text>
             </View>
           ) : (
             <>
@@ -507,26 +520,26 @@ export default function SettingsScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setLanguageModalVisible(false)}
       >
-        <View className="flex-1 bg-surface-900 px-6 pt-12">
-          <View className="flex-row items-center mb-8">
+        <View style={{ flex: 1, backgroundColor: theme.bg, paddingHorizontal: 24, paddingTop: 48 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 32 }}>
             <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
-              <Ionicons name="close" size={24} color="#94a3b8" />
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
             </TouchableOpacity>
-            <Text className="text-slate-50 text-xl font-semibold ml-4">{t.selectLanguage}</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '600', marginLeft: 16 }}>{t.selectLanguage}</Text>
           </View>
           <ScrollView>
             {LANGUAGES.map((lang) => (
               <TouchableOpacity
                 key={lang.code}
-                className="flex-row items-center px-4 py-4 border-b border-surface-700/50"
+                style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}
                 onPress={async () => {
                   await setLanguage(lang.code);
                   setLanguageModalVisible(false);
                 }}
               >
-                <View className="flex-1">
-                  <Text className="text-slate-100 text-base">{lang.nativeLabel}</Text>
-                  <Text className="text-slate-500 text-xs mt-0.5">{lang.label}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.textPrimary, fontSize: 16 }}>{lang.nativeLabel}</Text>
+                  <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>{lang.label}</Text>
                 </View>
                 {language === lang.code && (
                   <Ionicons name="checkmark" size={20} color={theme.accent} />
@@ -537,10 +550,10 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ backgroundColor: theme.bg }}>
         {/* Profile */}
         <View className="px-5 pt-6 pb-5">
-          <Text className="text-slate-50 text-2xl font-bold mb-5">{t.settings}</Text>
+          <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700', marginBottom: 20 }}>{t.settings}</Text>
           <Card className="p-4 flex-row items-center">
             <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: theme.accent + "30" }}>
               <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "bold" }}>
@@ -548,10 +561,10 @@ export default function SettingsScreen() {
               </Text>
             </View>
             <View className="flex-1 ml-4">
-              <Text className="text-slate-50 text-base font-semibold">
+              <Text style={{ color: theme.textPrimary, fontSize: 16, fontWeight: '600' }}>
                 {user?.name ?? 'User'}
               </Text>
-              <Text className="text-slate-400 text-sm mt-0.5">{user?.email ?? ''}</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 2 }}>{user?.email ?? ''}</Text>
             </View>
             <Badge label={planLabel} variant={plan === 'free' ? 'neutral' : 'primary'} />
           </Card>
@@ -559,7 +572,7 @@ export default function SettingsScreen() {
 
         {/* Profile Details */}
         <View className="mb-6 px-5">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest mb-3">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             {t.profile}
           </Text>
           <Card variant="outlined" className="p-4 gap-y-4">
@@ -634,7 +647,7 @@ export default function SettingsScreen() {
 
         {/* Subscription */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.subscription}
           </Text>
           <Card variant="outlined" className="mx-5">
@@ -666,18 +679,17 @@ export default function SettingsScreen() {
 
         {/* Preferences */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.preferences}
           </Text>
           <Card variant="outlined" className="mx-5">
             <Row
               icon="moon-outline"
-              label={t.darkMode}
-              toggle
-              toggleValue={darkMode}
-              onToggle={setDarkMode}
-            accent={theme.accent}
-              />
+              label="Appearance"
+              value={colorScheme === 'dark' ? 'Dark' : colorScheme === 'light' ? 'Light' : 'System'}
+              onPress={handleColorScheme}
+              accent={theme.accent}
+            />
             <Row
               icon="notifications-outline"
               label={t.notifications}
@@ -701,14 +713,12 @@ export default function SettingsScreen() {
               onPress={() => setLanguageModalVisible(true)}
             accent={theme.accent}
               />
-            <Row icon="color-palette-outline" label={t.theme} value="Indigo" onPress={() => {}} accent={theme.accent}
-              />
           </Card>
         </View>
 
         {/* Security */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.security}
           </Text>
           <Card variant="outlined" className="mx-5">
@@ -734,7 +744,7 @@ export default function SettingsScreen() {
 
         {/* Data Encryption */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.dataEncryption}
           </Text>
           <Card variant="outlined" className="mx-5">
@@ -784,7 +794,7 @@ export default function SettingsScreen() {
 
         {/* Organization */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.organization}
           </Text>
           <Card variant="outlined" className="mx-5">
@@ -797,7 +807,7 @@ export default function SettingsScreen() {
 
         {/* Data */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.data}
           </Text>
           <Card variant="outlined" className="mx-5">
@@ -813,7 +823,7 @@ export default function SettingsScreen() {
         {/* Super Admin */}
         {isAdmin && (
           <View className="mb-6">
-            <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+            <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
               {t.superAdmin}
             </Text>
             <Card variant="outlined" className="mx-5">
@@ -838,7 +848,7 @@ export default function SettingsScreen() {
 
         {/* Account */}
         <View className="mb-6">
-          <Text className="text-slate-500 text-xs uppercase tracking-widest px-5 mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.account}
           </Text>
           <Card variant="outlined" className="mx-5">

@@ -117,7 +117,7 @@ export default function ScanScreen() {
   // â”€â”€ Permission loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (!permission) {
     return (
-      <View className="flex-1 bg-surface-900 items-center justify-center">
+      <View style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color={theme.accent} size="large" />
       </View>
     );
@@ -125,7 +125,7 @@ export default function ScanScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center px-8">
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
         <Ionicons name="camera-outline" size={64} color="#475569" />
         <Text className="text-slate-50 text-xl font-bold mt-6 text-center">
           Camera Permission Required

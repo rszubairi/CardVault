@@ -71,7 +71,7 @@ export default function DashboardScreen() {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top']}>
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 24 }}
@@ -82,14 +82,14 @@ export default function DashboardScreen() {
         {/* Header */}
         <View className="px-5 pt-6 pb-4 flex-row items-center justify-between">
           <View>
-            <Text className="text-slate-400 text-sm">Good day,</Text>
-            <Text className="text-slate-50 text-2xl font-bold">{firstName}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 14 }}>Good day,</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>{firstName}</Text>
           </View>
           <TouchableOpacity
-            className="w-10 h-10 bg-surface-800 rounded-full items-center justify-center"
+            style={{ width: 40, height: 40, backgroundColor: theme.surfaceAlt, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}
             onPress={() => router.push('/(app)/(tabs)/settings')}
           >
-            <Ionicons name="person-outline" size={20} color="#94A3B8" />
+            <Ionicons name="person-outline" size={20} color={theme.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -102,10 +102,10 @@ export default function DashboardScreen() {
           >
             <Ionicons name="flash" size={18} color="#FBBF24" />
             <View className="flex-1 ml-3">
-              <Text className="text-slate-200 text-sm font-semibold">
+              <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '600' }}>
                 {scanCount} / {scanLimit} free scans used
               </Text>
-              <Text className="text-slate-400 text-xs mt-0.5">
+              <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
                 Upgrade to Pro for unlimited scanning
               </Text>
             </View>
@@ -114,22 +114,22 @@ export default function DashboardScreen() {
 
         {/* Stats strip */}
         <View className="px-5 mb-5">
-          <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3">
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Overview
           </Text>
           <View className="flex-row gap-2">
             {statCards.map(({ label, value, icon, color }) => (
               <View
                 key={label}
-                className="flex-1 bg-surface-800 rounded-2xl px-3 py-3 items-center"
+                style={{ flex: 1, backgroundColor: theme.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 12, alignItems: 'center' }}
               >
                 <Ionicons name={icon as any} size={16} color={color} />
                 {stats === undefined ? (
                   <ActivityIndicator color={color} size="small" style={{ marginTop: 4 }} />
                 ) : (
-                  <Text className="text-slate-50 text-lg font-bold mt-1">{value}</Text>
+                  <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700', marginTop: 4 }}>{value}</Text>
                 )}
-                <Text className="text-slate-500 text-xs mt-0.5 text-center" numberOfLines={2}>
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2, textAlign: 'center' }} numberOfLines={2}>
                   {label}
                 </Text>
               </View>
@@ -139,14 +139,14 @@ export default function DashboardScreen() {
 
         {/* Quick Actions — single row */}
         <View className="px-5 mb-5">
-          <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-3">
+          <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             Quick Actions
           </Text>
           <View className="flex-row gap-2">
             {quickActions.map(({ icon, label, href, color }) => (
               <TouchableOpacity
                 key={label}
-                className="flex-1 bg-surface-800 rounded-2xl py-3 items-center"
+                style={{ flex: 1, backgroundColor: theme.surface, borderRadius: 16, paddingVertical: 12, alignItems: 'center' }}
                 onPress={() => router.push(href as any)}
               >
                 <View
@@ -155,7 +155,7 @@ export default function DashboardScreen() {
                 >
                   <Ionicons name={icon as any} size={18} color={color} />
                 </View>
-                <Text className="text-slate-300 text-xs font-medium text-center">{label}</Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '500', textAlign: 'center' }}>{label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -164,7 +164,7 @@ export default function DashboardScreen() {
         {/* Recent Contacts */}
         <View className="px-5">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-slate-400 text-xs font-semibold uppercase tracking-widest">
+            <Text style={{ color: theme.textMuted, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 1.2 }}>
               Recent Contacts
             </Text>
             <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/contacts')}>
