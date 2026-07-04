@@ -16,6 +16,7 @@ import { api } from '../../convex/_generated/api';
 import Button from '../../src/components/ui/Button';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
+import { useAppTheme } from '../../src/theme/useAppTheme';
 
 const PRO_FEATURES = [
   'Unlimited business card scans',
@@ -50,6 +51,7 @@ export default function UpgradeScreen() {
   const { user } = useAuthStore();
   const { hidePaywall, scanCount, scanLimit, plan, setPlan } = useSubscriptionStore();
   const createCheckoutSession = useAction(api.subscriptions.createCheckoutSession);
+  const theme = useAppTheme();
 
   const [status, setStatus]       = useState<CheckoutStatus>('idle');
   const [activePlan, setActivePlan] = useState<'personal_pro' | 'enterprise' | null>(null);
@@ -89,12 +91,12 @@ export default function UpgradeScreen() {
 
   if (status === 'success') {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center px-6">
-        <View className="w-20 h-20 bg-emerald-900/40 rounded-full items-center justify-center mb-6">
-          <Ionicons name="checkmark-circle" size={44} color="#10B981" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 }}>
+        <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: theme.success + '30', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+          <Ionicons name="checkmark-circle" size={44} color={theme.success} />
         </View>
-        <Text className="text-slate-50 text-2xl font-bold mb-2">You're all set!</Text>
-        <Text className="text-slate-400 text-base text-center mb-8">
+        <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700', marginBottom: 8 }}>You're all set!</Text>
+        <Text style={{ color: theme.textSecondary, fontSize: 16, textAlign: 'center', marginBottom: 32 }}>
           Welcome to CardVault {activePlan === 'personal_pro' ? 'Pro' : 'Enterprise'}.
           Your subscription is now active.
         </Text>
@@ -112,16 +114,16 @@ export default function UpgradeScreen() {
   const showEnterprise = plan === 'free' || plan === 'personal_pro';
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
-      <View className="flex-row items-center px-5 py-4 border-b border-surface-800">
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border }}>
         <TouchableOpacity
           onPress={() => { hidePaywall(); router.back(); }}
-          className="mr-3"
+          style={{ marginRight: 12 }}
           disabled={isLoading}
         >
-          <Ionicons name="close" size={24} color="#94A3B8" />
+          <Ionicons name="close" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="text-slate-50 text-lg font-bold">
+        <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700' }}>
           {plan === 'personal_pro' ? 'Upgrade to Enterprise' : 'Upgrade CardVault'}
         </Text>
       </View>
@@ -129,28 +131,31 @@ export default function UpgradeScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* Scan limit notice — free users only */}
         {plan === 'free' && (
-          <View className="p-4 mb-6 rounded-xl border border-amber-700/50 bg-amber-900/20">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="warning-outline" size={18} color="#FBBF24" />
-              <Text className="text-amber-400 text-sm font-semibold ml-2">Free Limit Reached</Text>
+          <View style={{ padding: 16, marginBottom: 24, borderRadius: 12, borderWidth: 1, borderColor: theme.warning + '50', backgroundColor: theme.warning + '20' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+              <Ionicons name="warning-outline" size={18} color={theme.warning} />
+              <Text style={{ color: theme.warning, fontSize: 14, fontWeight: '600', marginLeft: 8 }}>
+                {scanCount >= scanLimit ? 'Free Limit Reached' : 'Free Plan'}
+              </Text>
             </View>
-            <Text className="text-slate-400 text-sm leading-5">
-              You've used {scanCount} of {scanLimit} free scans. Upgrade to continue scanning
-              and unlock all AI features.
+            <Text style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 20 }}>
+              {scanCount >= scanLimit
+                ? `You've used all ${scanLimit} of your free scans. Upgrade to continue scanning and unlock all AI features.`
+                : `You've used ${scanCount} of ${scanLimit} free scans. Upgrade anytime to unlock unlimited scanning and all AI features.`}
             </Text>
           </View>
         )}
 
         {/* Already on Pro banner */}
         {plan === 'personal_pro' && (
-          <View className="p-4 mb-6 rounded-xl border border-primary-700/50 bg-primary-900/20">
-            <View className="flex-row items-center">
-              <Ionicons name="checkmark-circle" size={18} color="#6366F1" />
-              <Text className="text-primary-300 text-sm font-semibold ml-2">
+          <View style={{ padding: 16, marginBottom: 24, borderRadius: 12, borderWidth: 1, borderColor: theme.accent + '50', backgroundColor: theme.accentTint }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="checkmark-circle" size={18} color={theme.accent} />
+              <Text style={{ color: theme.accent, fontSize: 14, fontWeight: '600', marginLeft: 8 }}>
                 You're on Personal Pro
               </Text>
             </View>
-            <Text className="text-slate-400 text-sm mt-1 leading-5">
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 4, lineHeight: 20 }}>
               Upgrade to Enterprise to unlock team collaboration and shared CRM features.
             </Text>
           </View>
@@ -158,33 +163,33 @@ export default function UpgradeScreen() {
 
         {/* Verifying */}
         {status === 'verifying' && (
-          <View className="p-6 items-center mb-6 bg-surface-800 rounded-2xl">
-            <ActivityIndicator color="#6366F1" size="large" />
-            <Text className="text-slate-300 text-sm mt-3">Verifying your subscription...</Text>
-            <Text className="text-slate-500 text-xs mt-1">This may take a moment.</Text>
+          <View style={{ padding: 24, alignItems: 'center', marginBottom: 24, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border }}>
+            <ActivityIndicator color={theme.accent} size="large" />
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 12 }}>Verifying your subscription...</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>This may take a moment.</Text>
           </View>
         )}
 
         {/* Personal Pro card */}
         {showPro && (
-          <View className="p-5 mb-4 bg-surface-800 rounded-2xl border border-primary-700/50">
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-slate-50 text-xl font-bold">Personal Pro</Text>
-              <View className="bg-primary-500 px-3 py-1 rounded-full">
-                <Text className="text-white text-xs font-semibold">Popular</Text>
+          <View style={{ padding: 20, marginBottom: 16, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.accent + '50' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '700' }}>Personal Pro</Text>
+              <View style={{ backgroundColor: theme.accent, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999 }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Popular</Text>
               </View>
             </View>
-            <Text className="text-slate-400 text-sm mb-4">For individual professionals</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 16 }}>For individual professionals</Text>
 
-            <View className="flex-row items-baseline mb-5">
-              <Text className="text-slate-50 text-4xl font-bold">$10</Text>
-              <Text className="text-slate-400 text-sm ml-2">/ year</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 20 }}>
+              <Text style={{ color: theme.textPrimary, fontSize: 36, fontWeight: '700' }}>$10</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 14, marginLeft: 8 }}>/ year</Text>
             </View>
 
             {PRO_FEATURES.map((f) => (
-              <View key={f} className="flex-row items-center mb-2.5">
-                <Ionicons name="checkmark-circle" size={18} color="#6366F1" />
-                <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+              <View key={f} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Ionicons name="checkmark-circle" size={18} color={theme.accent} />
+                <Text style={{ color: theme.textSecondary, fontSize: 14, marginLeft: 12 }}>{f}</Text>
               </View>
             ))}
 
@@ -207,19 +212,19 @@ export default function UpgradeScreen() {
 
         {/* Enterprise card */}
         {showEnterprise && (
-          <View className="p-5 mb-4 bg-surface-800 rounded-2xl border border-surface-600">
-            <Text className="text-slate-50 text-xl font-bold mb-1">Enterprise</Text>
-            <Text className="text-slate-400 text-sm mb-4">For teams and organizations</Text>
+          <View style={{ padding: 20, marginBottom: 16, backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border }}>
+            <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '700', marginBottom: 4 }}>Enterprise</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 14, marginBottom: 16 }}>For teams and organizations</Text>
 
-            <View className="flex-row items-baseline mb-5">
-              <Text className="text-slate-50 text-4xl font-bold">$15</Text>
-              <Text className="text-slate-400 text-sm ml-2">/ user / month</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: 20 }}>
+              <Text style={{ color: theme.textPrimary, fontSize: 36, fontWeight: '700' }}>$15</Text>
+              <Text style={{ color: theme.textSecondary, fontSize: 14, marginLeft: 8 }}>/ user / month</Text>
             </View>
 
             {ENTERPRISE_FEATURES.map((f) => (
-              <View key={f} className="flex-row items-center mb-2.5">
-                <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
-                <Text className="text-slate-300 text-sm ml-3">{f}</Text>
+              <View key={f} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                <Ionicons name="checkmark-circle" size={18} color={theme.warning} />
+                <Text style={{ color: theme.textSecondary, fontSize: 14, marginLeft: 12 }}>{f}</Text>
               </View>
             ))}
 
@@ -239,7 +244,7 @@ export default function UpgradeScreen() {
           </View>
         )}
 
-        <Text className="text-slate-500 text-xs text-center mt-2">
+        <Text style={{ color: theme.textMuted, fontSize: 12, textAlign: 'center', marginTop: 8 }}>
           Payments secured by Stripe. Cancel anytime.
         </Text>
       </ScrollView>

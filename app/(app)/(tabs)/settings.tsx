@@ -97,6 +97,15 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
 
 const LOCK_TIMEOUT_SECONDS = [0, 30, 60, 300];
 
+const DELETION_REASONS = [
+  'Not using the app anymore',
+  'Privacy concerns',
+  'Found a better alternative',
+  'Too expensive',
+  'Technical issues',
+  'Other',
+];
+
 // ─── PIN change modal ─────────────────────────────────────────────────────────
 
 const PIN_LEN = 6;
@@ -167,6 +176,7 @@ export default function SettingsScreen() {
   const changePINMutation = useMutation(api.users.changePIN);
   const disableEncryptionMutation = useMutation(api.users.disableEncryption);
   const clearEncryptedPayloadsMutation = useMutation(api.contacts.clearEncryptedPayloads);
+  const requestAccountDeletion = useMutation(api.users.requestAccountDeletion);
   const encryptionConfig = useQuery(
     api.users.getEncryptionConfig,
     user?._id ? { userId: user._id as any } : 'skip',
@@ -192,6 +202,13 @@ export default function SettingsScreen() {
   const [pinOldHash, setPinOldHash] = React.useState('');
   const [pinFirstNew, setPinFirstNew] = React.useState('');
   const [pinLoading, setPinLoading] = React.useState(false);
+
+  // Delete-account modal state
+  const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
+  const [reasonPickerVisible, setReasonPickerVisible] = React.useState(false);
+  const [deleteReason, setDeleteReason] = React.useState<string | null>(null);
+  const [deleteComment, setDeleteComment] = React.useState('');
+  const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
 
   // Sync encryptionEnabled from server config on load
   React.useEffect(() => {
@@ -495,6 +512,59 @@ export default function SettingsScreen() {
     );
   };
 
+  const openDeleteAccount = () => {
+    setDeleteReason(null);
+    setDeleteComment('');
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDeleteAccount = () => {
+    if (!user?._id || !deleteReason) return;
+    Alert.alert(
+      'Delete Account?',
+      'Your account and data will be scheduled for permanent deletion in 30 days. You can cancel this by simply logging back in before then.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleteSubmitting(true);
+            try {
+              const { scheduledFor } = await requestAccountDeletion({
+                userId: user._id,
+                reason: deleteReason,
+                comment: deleteComment.trim() || undefined,
+              });
+              const scheduledDate = new Date(scheduledFor).toLocaleDateString(undefined, {
+                year: 'numeric', month: 'long', day: 'numeric',
+              });
+              setDeleteModalVisible(false);
+              Alert.alert(
+                'Deletion Scheduled',
+                `Your account and data will be permanently deleted on ${scheduledDate}. Log back in before then to cancel this request.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: async () => {
+                      await clearSession();
+                      signOut();
+                      router.replace('/(auth)/');
+                    },
+                  },
+                ],
+              );
+            } catch {
+              Alert.alert(t.error, 'Could not schedule account deletion. Please try again.');
+            } finally {
+              setDeleteSubmitting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const planLabel = plan === 'free' ? t.planFree : plan === 'personal_pro' ? t.planPersonalPro : t.planEnterprise;
   const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? 'English';
 
@@ -564,6 +634,116 @@ export default function SettingsScreen() {
             ))}
           </ScrollView>
         </View>
+      </Modal>
+
+      {/* Delete account modal */}
+      <Modal
+        visible={deleteModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { if (!deleteSubmitting) setDeleteModalVisible(false); }}
+      >
+        <View style={{ flex: 1, backgroundColor: theme.bg, paddingHorizontal: 24, paddingTop: 48 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+            <TouchableOpacity onPress={() => { if (!deleteSubmitting) setDeleteModalVisible(false); }}>
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
+            </TouchableOpacity>
+            <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '600', marginLeft: 16 }}>Delete Account</Text>
+          </View>
+
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Text style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
+              We're sorry to see you go. Once submitted, your account and all data will be scheduled
+              for permanent deletion in 30 days. You can cancel this at any time simply by logging back in
+              before the scheduled date.
+            </Text>
+
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 6, marginLeft: 2 }}>
+              Reason for leaving *
+            </Text>
+            <TouchableOpacity
+              onPress={() => setReasonPickerVisible(true)}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 20,
+              }}
+            >
+              <Text style={{ color: deleteReason ? theme.textPrimary : theme.textMuted, fontSize: 15 }}>
+                {deleteReason ?? 'Select a reason'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 6, marginLeft: 2 }}>
+              Additional comments (optional)
+            </Text>
+            <TextInput
+              value={deleteComment}
+              onChangeText={setDeleteComment}
+              placeholder="Tell us more..."
+              placeholderTextColor={theme.textMuted}
+              multiline
+              numberOfLines={4}
+              style={{
+                backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+                color: theme.textPrimary, fontSize: 15, minHeight: 96, textAlignVertical: 'top', marginBottom: 28,
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={handleConfirmDeleteAccount}
+              disabled={!deleteReason || deleteSubmitting}
+              style={{
+                borderRadius: 14, paddingVertical: 15, alignItems: 'center',
+                backgroundColor: theme.error, opacity: !deleteReason || deleteSubmitting ? 0.5 : 1,
+              }}
+            >
+              {deleteSubmitting
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Request Account Deletion</Text>
+              }
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* Reason picker sheet */}
+        <Modal
+          visible={reasonPickerVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setReasonPickerVisible(false)}
+        >
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+            activeOpacity={1}
+            onPress={() => setReasonPickerVisible(false)}
+          >
+            <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+                <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '600' }}>Select a reason</Text>
+                <TouchableOpacity onPress={() => setReasonPickerVisible(false)}>
+                  <Ionicons name="close" size={22} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              {DELETION_REASONS.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  onPress={() => {
+                    setDeleteReason(reason);
+                    setReasonPickerVisible(false);
+                  }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1, borderTopColor: theme.border,
+                  }}
+                >
+                  <Text style={{ color: theme.textPrimary, fontSize: 15 }}>{reason}</Text>
+                  {deleteReason === reason && <Ionicons name="checkmark" size={20} color={theme.accent} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
       </Modal>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ backgroundColor: theme.bg }}>
@@ -890,6 +1070,22 @@ export default function SettingsScreen() {
               danger
             accent={theme.accent}
               />
+          </SettingsCard>
+        </View>
+
+        {/* Danger Zone */}
+        <View className="mb-6">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
+            Danger Zone
+          </Text>
+          <SettingsCard style={{ marginHorizontal: 20 }}>
+            <Row
+              icon="trash-outline"
+              label="Delete Account"
+              onPress={openDeleteAccount}
+              danger
+              accent={theme.accent}
+            />
           </SettingsCard>
         </View>
       </ScrollView>

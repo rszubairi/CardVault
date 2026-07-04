@@ -1,5 +1,7 @@
-import { mutation, query } from './_generated/server';
+import { mutation, query, internalMutation } from './_generated/server';
 import { v } from 'convex/values';
+
+const DELETION_GRACE_PERIOD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const getOrCreate = mutation({
   args: {
@@ -16,7 +18,11 @@ export const getOrCreate = mutation({
       .unique();
 
     if (existing) {
-      return { userId: existing._id, isNew: false };
+      return {
+        userId: existing._id,
+        isNew: false,
+        deletionScheduledFor: existing.deletionScheduledFor ?? null,
+      };
     }
 
     const userId = await ctx.db.insert('users', {
@@ -35,7 +41,7 @@ export const getOrCreate = mutation({
       updatedAt: Date.now(),
     });
 
-    return { userId, isNew: true };
+    return { userId, isNew: true, deletionScheduledFor: null };
   },
 });
 
@@ -140,5 +146,75 @@ export const updateProfile = mutation({
       Object.entries(updates).filter(([, v]) => v !== undefined),
     );
     await ctx.db.patch(userId, filtered);
+  },
+});
+
+export const requestAccountDeletion = mutation({
+  args: {
+    userId:  v.id('users'),
+    reason:  v.string(),
+    comment: v.optional(v.string()),
+  },
+  handler: async (ctx, { userId, reason, comment }) => {
+    const now = Date.now();
+    const scheduledFor = now + DELETION_GRACE_PERIOD_MS;
+    await ctx.db.patch(userId, {
+      deletionRequestedAt:  now,
+      deletionScheduledFor: scheduledFor,
+      deletionReason:       reason,
+      deletionComment:      comment,
+    });
+    return { scheduledFor };
+  },
+});
+
+export const cancelAccountDeletion = mutation({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    await ctx.db.patch(userId, {
+      deletionRequestedAt:  undefined,
+      deletionScheduledFor: undefined,
+      deletionReason:       undefined,
+      deletionComment:      undefined,
+    });
+  },
+});
+
+// Purges accounts whose 30-day deletion grace period has elapsed. Runs daily via cron (see crons.ts).
+export const purgeExpiredDeletions = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const allUsers = await ctx.db.query('users').collect();
+    const expired = allUsers.filter(
+      (u) => u.deletionScheduledFor !== undefined && u.deletionScheduledFor <= now,
+    );
+
+    for (const user of expired) {
+      const userId = user._id;
+
+      for (const contact of await ctx.db.query('contacts').withIndex('by_user', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(contact._id);
+      }
+      for (const note of await ctx.db.query('notes').withIndex('by_user', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(note._id);
+      }
+      for (const interaction of await ctx.db.query('interactions').withIndex('by_user', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(interaction._id);
+      }
+      for (const event of await ctx.db.query('events').withIndex('by_user', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(event._id);
+      }
+      for (const sub of await ctx.db.query('subscriptions').withIndex('by_userId', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(sub._id);
+      }
+      for (const orgUser of await ctx.db.query('organizationUsers').withIndex('by_user', (q) => q.eq('userId', userId)).collect()) {
+        await ctx.db.delete(orgUser._id);
+      }
+
+      await ctx.db.delete(userId);
+    }
+
+    return { purgedCount: expired.length };
   },
 });

@@ -21,6 +21,11 @@ export default defineSchema({
     encryptionSalt:    v.optional(v.string()), // random salt for PBKDF2 key derivation
     pinHash:           v.optional(v.string()), // SHA-256(pin + pinSalt) for verification
     pinSalt:           v.optional(v.string()), // salt for PIN hash
+    // Account deletion (soft delete with 30-day grace period)
+    deletionRequestedAt:  v.optional(v.number()),
+    deletionScheduledFor: v.optional(v.number()),
+    deletionReason:       v.optional(v.string()),
+    deletionComment:      v.optional(v.string()),
   })
     .index('by_email',      ['email'])
     .index('by_externalId', ['externalId']),
