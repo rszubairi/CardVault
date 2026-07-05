@@ -165,7 +165,7 @@ export default function SettingsScreen() {
     biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout,
     encryptionEnabled, pinConfigured, setEncryptionKey, setEncryptionEnabled, setPinConfigured,
   } = useSecurityStore();
-  const { syncToPhone, setSyncToPhone, colorScheme, setColorScheme } = useSettingsStore();
+  const { syncToPhone, setSyncToPhone, colorScheme, setColorScheme, expressMode, setExpressMode } = useSettingsStore();
   const { language, setLanguage } = useLanguageStore();
   const { t } = useTranslation();
   const theme = useAppTheme();
@@ -911,6 +911,14 @@ export default function SettingsScreen() {
               onPress={() => setLanguageModalVisible(true)}
             accent={theme.accent}
               />
+            <Row
+              icon="flash-outline"
+              label="Express Scan Mode"
+              toggle
+              toggleValue={expressMode}
+              onToggle={setExpressMode}
+              accent={theme.accent}
+            />
           </SettingsCard>
         </View>
 
