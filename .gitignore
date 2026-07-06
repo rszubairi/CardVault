@@ -45,3 +45,6 @@ expo-env.d.ts
 # Build artifacts
 website/public/downloads/*.ipa
 website/public/downloads/*.apk
+
+# OTA install manifest is tracked despite the global *.plist ignore rule
+!website/public/downloads/manifest.plist
