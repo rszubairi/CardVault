@@ -22,8 +22,9 @@ import * as SecureStore from 'expo-secure-store';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useSecurityStore } from '../../src/stores/securityStore';
 import { useSubscriptionStore } from '../../src/stores/subscriptionStore';
-import { useQuery } from 'convex/react';
+import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
+import { clearSession } from '../../src/lib/auth';
 import { syncAllToDevice, hasBeenSynced } from '../../src/lib/deviceContacts';
 import { useSettingsStore } from '../../src/stores/settingsStore';
 import { useLanguageStore } from '../../src/stores/languageStore';
@@ -278,6 +279,83 @@ function UpdateProvider() {
   );
 }
 
+// ─── Pending account deletion gate ────────────────────────────────────────────
+
+function PendingDeletionGate() {
+  const { user, signOut } = useAuthStore();
+  const router = useRouter();
+  const [cancelling, setCancelling] = useState(false);
+  const convexUser = useQuery(api.users.getById, user ? { userId: user._id } : 'skip');
+  const cancelAccountDeletion = useMutation(api.users.cancelAccountDeletion);
+
+  const scheduledFor = convexUser?.deletionScheduledFor;
+  if (!scheduledFor) return null;
+
+  const scheduledDate = new Date(scheduledFor).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+
+  const handleKeepAccount = async () => {
+    if (!user) return;
+    setCancelling(true);
+    try {
+      await cancelAccountDeletion({ userId: user._id });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await clearSession();
+    signOut();
+    router.replace('/(auth)/');
+  };
+
+  return (
+    <Modal visible transparent={false} animationType="fade" statusBarTranslucent>
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#0F0F23' }}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 }}>
+          <View
+            style={{
+              width: 88, height: 88, borderRadius: 24,
+              backgroundColor: 'rgba(239,68,68,0.15)',
+              alignItems: 'center', justifyContent: 'center', marginBottom: 24,
+            }}
+          >
+            <Ionicons name="warning-outline" size={40} color="#EF4444" />
+          </View>
+          <Text style={{ color: '#F1F5F9', fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 12 }}>
+            Account scheduled for deletion
+          </Text>
+          <Text style={{ color: '#94A3B8', fontSize: 15, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+            Your account and all data are scheduled to be permanently deleted on{'\n'}
+            <Text style={{ color: '#F1F5F9', fontWeight: '600' }}>{scheduledDate}</Text>.
+            {'\n\n'}If you continue, this deletion request will be abandoned and your account will be reactivated.
+          </Text>
+
+          <TouchableOpacity
+            onPress={handleKeepAccount}
+            disabled={cancelling}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+              backgroundColor: '#6366F1', borderRadius: 16, paddingVertical: 16, width: '100%', marginBottom: 12,
+            }}
+          >
+            {cancelling
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Keep My Account &amp; Continue</Text>
+            }
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleSignOut} disabled={cancelling} style={{ paddingVertical: 12 }}>
+            <Text style={{ color: '#64748B', fontSize: 14, fontWeight: '500' }}>Sign Out (keep deletion scheduled)</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
 // ─── Org revocation listener ──────────────────────────────────────────────────
 
 function OrgRevocationListener() {
@@ -365,6 +443,7 @@ export default function AppLayout() {
       <OrgRevocationListener />
       <PendingInviteNavigator />
       <UpdateProvider />
+      <PendingDeletionGate />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="admin" options={{ animation: 'slide_from_right' }} />

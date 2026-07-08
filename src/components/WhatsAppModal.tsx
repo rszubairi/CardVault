@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Contact } from '../types';
 import { generateWhatsAppIntro } from '../lib/aiMessages';
+import { useAppTheme } from '../theme/useAppTheme';
 
 interface Props {
   visible: boolean;
@@ -27,6 +28,7 @@ export default function WhatsAppModal({
   const [message, setMessage] = useState(() =>
     generateWhatsAppIntro({ contact, senderName, eventName }),
   );
+  const theme = useAppTheme();
 
   const handleSend = async () => {
     const number = (contact.mobile ?? contact.phone)!.replace(/[^\d+]/g, '');
@@ -43,22 +45,22 @@ export default function WhatsAppModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-surface-800 rounded-t-3xl p-5 pb-10">
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+        <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 }}>
           <View className="flex-row items-center mb-4">
             <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-            <Text className="text-slate-50 text-lg font-bold ml-2 flex-1">Send Introduction</Text>
+            <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700', marginLeft: 8, flex: 1 }}>Send Introduction</Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={22} color="#94A3B8" />
+              <Ionicons name="close" size={22} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <Text className="text-slate-400 text-xs mb-2">
+          <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 8 }}>
             To: {contact.mobile ?? contact.phone}
           </Text>
 
           <TextInput
-            className="bg-surface-700 rounded-xl p-4 text-slate-100 text-sm leading-6 min-h-[140px]"
+            style={{ backgroundColor: theme.surfaceAlt, borderRadius: 12, padding: 16, color: theme.textPrimary, fontSize: 14, lineHeight: 22, minHeight: 140 }}
             value={message}
             onChangeText={setMessage}
             multiline
@@ -67,17 +69,18 @@ export default function WhatsAppModal({
 
           <View className="flex-row gap-3 mt-4">
             <TouchableOpacity
-              className="flex-1 bg-surface-700 rounded-xl py-3 items-center"
+              style={{ flex: 1, backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}
               onPress={() => setMessage(generateWhatsAppIntro({ contact, senderName, eventName }))}
             >
-              <Text className="text-slate-400 text-sm font-medium">Reset</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14, fontWeight: '500' }}>Reset</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="flex-2 bg-[#25D366] rounded-xl py-3 px-6 flex-row items-center justify-center"
+              className="flex-2"
+              style={{ backgroundColor: '#25D366', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
               onPress={handleSend}
             >
               <Ionicons name="send" size={16} color="#fff" />
-              <Text className="text-white text-sm font-semibold ml-2">Send on WhatsApp</Text>
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginLeft: 8 }}>Send on WhatsApp</Text>
             </TouchableOpacity>
           </View>
         </View>

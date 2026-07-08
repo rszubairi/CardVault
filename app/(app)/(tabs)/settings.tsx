@@ -28,7 +28,6 @@ import {
   type BiometricType,
 } from '../../../src/lib/biometric';
 import { clearSession } from '../../../src/lib/auth';
-import Card from '../../../src/components/ui/Card';
 import Badge from '../../../src/components/ui/Badge';
 import { useSettingsStore } from '../../../src/stores/settingsStore';
 import { useLanguageStore } from '../../../src/stores/languageStore';
@@ -52,6 +51,20 @@ type SettingRow = {
   danger?: boolean;
   accent: string;
 };
+
+function SettingsCard({ children, style }: { children: React.ReactNode; style?: any }) {
+  const theme = useAppTheme();
+  return (
+    <View
+      style={[
+        { backgroundColor: theme.surface, borderRadius: 16, borderWidth: 1, borderColor: theme.border, overflow: 'hidden' },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress, danger, accent }: SettingRow) {
   const theme = useAppTheme();
@@ -84,12 +97,22 @@ function Row({ icon, label, value, badge, toggle, toggleValue, onToggle, onPress
 
 const LOCK_TIMEOUT_SECONDS = [0, 30, 60, 300];
 
+const DELETION_REASONS = [
+  'Not using the app anymore',
+  'Privacy concerns',
+  'Found a better alternative',
+  'Too expensive',
+  'Technical issues',
+  'Other',
+];
+
 // ─── PIN change modal ─────────────────────────────────────────────────────────
 
 const PIN_LEN = 6;
 const NUMPAD_KEYS = ['1','2','3','4','5','6','7','8','9','','0','del'];
 
 function PinDots({ pin, accent }: { pin: string; accent: string }) {
+  const theme = useAppTheme();
   return (
     <View className="flex-row gap-x-3 my-4 justify-center">
       {Array.from({ length: PIN_LEN }).map((_, i) => (
@@ -98,7 +121,7 @@ function PinDots({ pin, accent }: { pin: string; accent: string }) {
           className="w-3 h-3 rounded-full border-2"
           style={i < pin.length
             ? { backgroundColor: accent, borderColor: accent }
-            : { backgroundColor: 'transparent', borderColor: '#64748B' }
+            : { backgroundColor: 'transparent', borderColor: theme.border }
           }
         />
       ))}
@@ -142,7 +165,7 @@ export default function SettingsScreen() {
     biometricEnabled, setBiometricEnabled, lockTimeout, setLockTimeout,
     encryptionEnabled, pinConfigured, setEncryptionKey, setEncryptionEnabled, setPinConfigured,
   } = useSecurityStore();
-  const { syncToPhone, setSyncToPhone, colorScheme, setColorScheme } = useSettingsStore();
+  const { syncToPhone, setSyncToPhone, colorScheme, setColorScheme, expressMode, setExpressMode } = useSettingsStore();
   const { language, setLanguage } = useLanguageStore();
   const { t } = useTranslation();
   const theme = useAppTheme();
@@ -153,6 +176,7 @@ export default function SettingsScreen() {
   const changePINMutation = useMutation(api.users.changePIN);
   const disableEncryptionMutation = useMutation(api.users.disableEncryption);
   const clearEncryptedPayloadsMutation = useMutation(api.contacts.clearEncryptedPayloads);
+  const requestAccountDeletion = useMutation(api.users.requestAccountDeletion);
   const encryptionConfig = useQuery(
     api.users.getEncryptionConfig,
     user?._id ? { userId: user._id as any } : 'skip',
@@ -178,6 +202,13 @@ export default function SettingsScreen() {
   const [pinOldHash, setPinOldHash] = React.useState('');
   const [pinFirstNew, setPinFirstNew] = React.useState('');
   const [pinLoading, setPinLoading] = React.useState(false);
+
+  // Delete-account modal state
+  const [deleteModalVisible, setDeleteModalVisible] = React.useState(false);
+  const [reasonPickerVisible, setReasonPickerVisible] = React.useState(false);
+  const [deleteReason, setDeleteReason] = React.useState<string | null>(null);
+  const [deleteComment, setDeleteComment] = React.useState('');
+  const [deleteSubmitting, setDeleteSubmitting] = React.useState(false);
 
   // Sync encryptionEnabled from server config on load
   React.useEffect(() => {
@@ -481,6 +512,59 @@ export default function SettingsScreen() {
     );
   };
 
+  const openDeleteAccount = () => {
+    setDeleteReason(null);
+    setDeleteComment('');
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDeleteAccount = () => {
+    if (!user?._id || !deleteReason) return;
+    Alert.alert(
+      'Delete Account?',
+      'Your account and data will be scheduled for permanent deletion in 30 days. You can cancel this by simply logging back in before then.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleteSubmitting(true);
+            try {
+              const { scheduledFor } = await requestAccountDeletion({
+                userId: user._id,
+                reason: deleteReason,
+                comment: deleteComment.trim() || undefined,
+              });
+              const scheduledDate = new Date(scheduledFor).toLocaleDateString(undefined, {
+                year: 'numeric', month: 'long', day: 'numeric',
+              });
+              setDeleteModalVisible(false);
+              Alert.alert(
+                'Deletion Scheduled',
+                `Your account and data will be permanently deleted on ${scheduledDate}. Log back in before then to cancel this request.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: async () => {
+                      await clearSession();
+                      signOut();
+                      router.replace('/(auth)/');
+                    },
+                  },
+                ],
+              );
+            } catch {
+              Alert.alert(t.error, 'Could not schedule account deletion. Please try again.');
+            } finally {
+              setDeleteSubmitting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const planLabel = plan === 'free' ? t.planFree : plan === 'personal_pro' ? t.planPersonalPro : t.planEnterprise;
   const currentLanguageLabel = LANGUAGES.find((l) => l.code === language)?.nativeLabel ?? 'English';
 
@@ -552,11 +636,121 @@ export default function SettingsScreen() {
         </View>
       </Modal>
 
+      {/* Delete account modal */}
+      <Modal
+        visible={deleteModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => { if (!deleteSubmitting) setDeleteModalVisible(false); }}
+      >
+        <View style={{ flex: 1, backgroundColor: theme.bg, paddingHorizontal: 24, paddingTop: 48 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 24 }}>
+            <TouchableOpacity onPress={() => { if (!deleteSubmitting) setDeleteModalVisible(false); }}>
+              <Ionicons name="close" size={24} color={theme.textSecondary} />
+            </TouchableOpacity>
+            <Text style={{ color: theme.textPrimary, fontSize: 20, fontWeight: '600', marginLeft: 16 }}>Delete Account</Text>
+          </View>
+
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <Text style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 24 }}>
+              We're sorry to see you go. Once submitted, your account and all data will be scheduled
+              for permanent deletion in 30 days. You can cancel this at any time simply by logging back in
+              before the scheduled date.
+            </Text>
+
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 6, marginLeft: 2 }}>
+              Reason for leaving *
+            </Text>
+            <TouchableOpacity
+              onPress={() => setReasonPickerVisible(true)}
+              style={{
+                flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 20,
+              }}
+            >
+              <Text style={{ color: deleteReason ? theme.textPrimary : theme.textMuted, fontSize: 15 }}>
+                {deleteReason ?? 'Select a reason'}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 6, marginLeft: 2 }}>
+              Additional comments (optional)
+            </Text>
+            <TextInput
+              value={deleteComment}
+              onChangeText={setDeleteComment}
+              placeholder="Tell us more..."
+              placeholderTextColor={theme.textMuted}
+              multiline
+              numberOfLines={4}
+              style={{
+                backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12,
+                color: theme.textPrimary, fontSize: 15, minHeight: 96, textAlignVertical: 'top', marginBottom: 28,
+              }}
+            />
+
+            <TouchableOpacity
+              onPress={handleConfirmDeleteAccount}
+              disabled={!deleteReason || deleteSubmitting}
+              style={{
+                borderRadius: 14, paddingVertical: 15, alignItems: 'center',
+                backgroundColor: theme.error, opacity: !deleteReason || deleteSubmitting ? 0.5 : 1,
+              }}
+            >
+              {deleteSubmitting
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>Request Account Deletion</Text>
+              }
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* Reason picker sheet */}
+        <Modal
+          visible={reasonPickerVisible}
+          animationType="slide"
+          transparent
+          onRequestClose={() => setReasonPickerVisible(false)}
+        >
+          <TouchableOpacity
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' }}
+            activeOpacity={1}
+            onPress={() => setReasonPickerVisible(false)}
+          >
+            <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 24 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 }}>
+                <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '600' }}>Select a reason</Text>
+                <TouchableOpacity onPress={() => setReasonPickerVisible(false)}>
+                  <Ionicons name="close" size={22} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              {DELETION_REASONS.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  onPress={() => {
+                    setDeleteReason(reason);
+                    setReasonPickerVisible(false);
+                  }}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    paddingHorizontal: 20, paddingVertical: 16, borderTopWidth: 1, borderTopColor: theme.border,
+                  }}
+                >
+                  <Text style={{ color: theme.textPrimary, fontSize: 15 }}>{reason}</Text>
+                  {deleteReason === reason && <Ionicons name="checkmark" size={20} color={theme.accent} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      </Modal>
+
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} style={{ backgroundColor: theme.bg }}>
         {/* Profile */}
         <View className="px-5 pt-6 pb-5">
           <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700', marginBottom: 20 }}>{t.settings}</Text>
-          <Card className="p-4 flex-row items-center">
+          <SettingsCard style={{ padding: 16, flexDirection: 'row', alignItems: 'center' }}>
             <View className="w-14 h-14 rounded-full items-center justify-center" style={{ backgroundColor: theme.accent + "30" }}>
               <Text style={{ color: theme.accent, fontSize: 20, fontWeight: "bold" }}>
                 {user?.name?.[0]?.toUpperCase() ?? 'U'}
@@ -569,7 +763,7 @@ export default function SettingsScreen() {
               <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 2 }}>{user?.email ?? ''}</Text>
             </View>
             <Badge label={planLabel} variant={plan === 'free' ? 'neutral' : 'primary'} />
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Profile Details */}
@@ -577,56 +771,56 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 12 }}>
             {t.profile}
           </Text>
-          <Card variant="outlined" className="p-4 gap-y-4">
+          <SettingsCard style={{ padding: 16, gap: 16 }}>
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.email}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.email}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="mail-outline" size={16} color={theme.accent} />
-                <Text className="text-slate-400 ml-2 text-sm flex-1">{user?.email}</Text>
+                <Text style={{ color: theme.textSecondary, marginLeft: 8, fontSize: 14, flex: 1 }}>{user?.email}</Text>
               </View>
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.phoneNumber}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.phoneNumber}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="call-outline" size={16} color={theme.accent} />
                 <TextInput
                   value={phone}
                   onChangeText={setPhone}
                   placeholder={t.addPhoneNumber}
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={theme.textMuted}
                   keyboardType="phone-pad"
                   className="flex-1 ml-2 text-sm"
-                  style={{ color: '#e2e8f0' }}
+                  style={{ color: theme.textPrimary }}
                 />
               </View>
             </View>
 
             <View>
-              <Text className="text-slate-400 text-xs mb-1 ml-1">{t.linkedinProfile}</Text>
-              <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>{t.linkedinProfile}</Text>
+              <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                 <Ionicons name="logo-linkedin" size={16} color="#0A66C2" />
-                <Text className="text-slate-500 ml-2 text-sm">linkedin.com/in/</Text>
+                <Text style={{ color: theme.textMuted, marginLeft: 8, fontSize: 14 }}>linkedin.com/in/</Text>
                 <TextInput
                   value={linkedinHandle}
                   onChangeText={setLinkedinHandle}
                   placeholder="yourname"
-                  placeholderTextColor="#475569"
+                  placeholderTextColor={theme.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="url"
                   className="flex-1 text-sm"
-                  style={{ color: '#e2e8f0' }}
+                  style={{ color: theme.textPrimary }}
                 />
               </View>
             </View>
 
             {convexUser?.corporateEmail && (
               <View>
-                <Text className="text-slate-400 text-xs mb-1 ml-1">Corporate Email</Text>
-                <View className="flex-row items-center bg-surface-700 rounded-xl px-3 py-3">
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 4, marginLeft: 4 }}>Corporate Email</Text>
+                <View className="flex-row items-center rounded-xl px-3 py-3" style={{ backgroundColor: theme.surfaceAlt }}>
                   <Ionicons name="briefcase-outline" size={16} color={theme.accent} />
-                  <Text className="text-slate-300 ml-2 text-sm flex-1">{convexUser.corporateEmail}</Text>
+                  <Text style={{ color: theme.textPrimary, marginLeft: 8, fontSize: 14, flex: 1 }}>{convexUser.corporateEmail}</Text>
                   <View style={{ backgroundColor: theme.accent + '20', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
                     <Text style={{ color: theme.accent, fontSize: 10, fontWeight: '700' }}>ENTERPRISE</Text>
                   </View>
@@ -644,7 +838,7 @@ export default function SettingsScreen() {
                 : <Text className="text-white text-sm font-semibold">{t.saveProfile}</Text>
               }
             </TouchableOpacity>
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Subscription */}
@@ -652,7 +846,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.subscription}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="flash-outline"
               label={t.currentPlan}
@@ -678,7 +872,7 @@ export default function SettingsScreen() {
                 accent={theme.accent}
               />
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Preferences */}
@@ -686,7 +880,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.preferences}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="moon-outline"
               label="Appearance"
@@ -717,7 +911,15 @@ export default function SettingsScreen() {
               onPress={() => setLanguageModalVisible(true)}
             accent={theme.accent}
               />
-          </Card>
+            <Row
+              icon="flash-outline"
+              label="Express Scan Mode"
+              toggle
+              toggleValue={expressMode}
+              onToggle={setExpressMode}
+              accent={theme.accent}
+            />
+          </SettingsCard>
         </View>
 
         {/* Security */}
@@ -725,7 +927,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.security}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row
               icon="finger-print-outline"
               label={biometricAvailable ? `${biometricType} Lock` : t.biometricLock}
@@ -743,7 +945,7 @@ export default function SettingsScreen() {
               accent={theme.accent}
               />
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Data Encryption */}
@@ -751,17 +953,26 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.dataEncryption}
           </Text>
-          <Card variant="outlined" className="mx-5">
-            <View className="px-5 py-4 border-b border-surface-700/50 flex-row items-center">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
+            <View
+              style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: theme.border, flexDirection: 'row', alignItems: 'center' }}
+            >
               <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
               <View className="flex-1 ml-4">
-                <Text className="text-slate-200 text-base">{t.contactEncryption}</Text>
-                <Text className="text-slate-500 text-xs mt-0.5">
+                <Text style={{ color: theme.textPrimary, fontSize: 16 }}>{t.contactEncryption}</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 2 }}>
                   {encryptionEnabled ? t.encryptionEnabledDesc : t.encryptionDisabledDesc}
                 </Text>
               </View>
-              <View className={`px-2 py-0.5 rounded-full ${encryptionEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>
-                <Text className={`text-xs font-medium ${encryptionEnabled ? 'text-emerald-400' : 'text-slate-400'}`}>
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 999,
+                  backgroundColor: encryptionEnabled ? theme.success + '20' : theme.surfaceAlt,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '500', color: encryptionEnabled ? theme.success : theme.textMuted }}>
                   {encryptionEnabled ? t.on : t.off}
                 </Text>
               </View>
@@ -793,7 +1004,7 @@ export default function SettingsScreen() {
               />
               </>
             )}
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Organization — enterprise build only */}
@@ -802,10 +1013,10 @@ export default function SettingsScreen() {
             <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
               {t.organization}
             </Text>
-            <Card variant="outlined" className="mx-5">
+            <SettingsCard style={{ marginHorizontal: 20 }}>
               <Row icon="business-outline" label={t.myOrganization} onPress={() => router.push('/(app)/org/')} accent={theme.accent} />
               <Row icon="people-outline"   label={t.followUps}      onPress={() => router.push('/(app)/follow-ups')} accent={theme.accent} />
-            </Card>
+            </SettingsCard>
           </View>
         )}
 
@@ -814,14 +1025,14 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.data}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row icon="download-outline"     label={t.exportContacts} onPress={() => router.push('/(app)/export')} accent={theme.accent}
               />
             <Row icon="cloud-upload-outline" label={t.importContacts} onPress={() => router.push('/(app)/import')} accent={theme.accent}
               />
             <Row icon="sync-outline"         label={t.syncStatus}     value={t.synced} onPress={() => {}} accent={theme.accent}
               />
-          </Card>
+          </SettingsCard>
         </View>
 
         {/* Super Admin */}
@@ -830,13 +1041,13 @@ export default function SettingsScreen() {
             <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
               {t.superAdmin}
             </Text>
-            <Card variant="outlined" className="mx-5">
-              <View className="px-5 py-3 border-b border-surface-700/50">
+            <SettingsCard style={{ marginHorizontal: 20 }}>
+              <View style={{ paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
                 <View className="flex-row items-center gap-x-2">
-                  <View className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <Text className="text-emerald-400 text-xs font-medium">{t.adminAccessActive}</Text>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.success }} />
+                  <Text style={{ color: theme.success, fontSize: 12, fontWeight: '500' }}>{t.adminAccessActive}</Text>
                 </View>
-                <Text className="text-slate-500 text-xs mt-1">
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
                   App v{Constants.expoConfig?.version ?? '—'} · {user?.email}
                 </Text>
               </View>
@@ -846,7 +1057,7 @@ export default function SettingsScreen() {
                 onPress={() => router.push('/(app)/admin/releases')}
               accent={theme.accent}
               />
-            </Card>
+            </SettingsCard>
           </View>
         )}
 
@@ -855,7 +1066,7 @@ export default function SettingsScreen() {
           <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
             {t.account}
           </Text>
-          <Card variant="outlined" className="mx-5">
+          <SettingsCard style={{ marginHorizontal: 20 }}>
             <Row icon="shield-outline"             label={t.privacyPolicy} onPress={() => router.push('/(app)/privacy')} accent={theme.accent}
               />
             <Row icon="information-circle-outline" label={t.about}         value="v1.0.0" onPress={() => {}} accent={theme.accent}
@@ -867,7 +1078,23 @@ export default function SettingsScreen() {
               danger
             accent={theme.accent}
               />
-          </Card>
+          </SettingsCard>
+        </View>
+
+        {/* Danger Zone */}
+        <View className="mb-6">
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.2, paddingHorizontal: 20, marginBottom: 8 }}>
+            Danger Zone
+          </Text>
+          <SettingsCard style={{ marginHorizontal: 20 }}>
+            <Row
+              icon="trash-outline"
+              label="Delete Account"
+              onPress={openDeleteAccount}
+              danger
+              accent={theme.accent}
+            />
+          </SettingsCard>
         </View>
       </ScrollView>
     </SafeAreaView>

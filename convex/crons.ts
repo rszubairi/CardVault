@@ -10,4 +10,11 @@ crons.daily(
   internal.notifications.checkFollowUpsAndNotify,
 );
 
+// Purge accounts whose 30-day deletion grace period has elapsed
+crons.daily(
+  'purge-expired-account-deletions',
+  { hourUTC: 1, minuteUTC: 0 },
+  internal.users.purgeExpiredDeletions,
+);
+
 export default crons;

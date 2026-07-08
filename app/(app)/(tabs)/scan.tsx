@@ -11,9 +11,15 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TextRecognition from '@react-native-ml-kit/text-recognition';
+import { useConvex } from 'convex/react';
 import { useSubscriptionStore } from '../../../src/stores/subscriptionStore';
+import { useSettingsStore } from '../../../src/stores/settingsStore';
+import { useScanQueueStore } from '../../../src/stores/scanQueueStore';
+import { useAuthStore } from '../../../src/stores/authStore';
+import { processExpressScan } from '../../../src/lib/expressScan';
 import { Colors } from '../../../src/constants/theme';
 import { useAppTheme } from '../../../src/theme/useAppTheme';
+import ExpressQueueSheet from '../../../src/components/ExpressQueueSheet';
 
 type DetectionState = 'scanning' | 'detected' | 'capturing';
 
@@ -35,7 +41,14 @@ export default function ScanScreen() {
   const captureTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { hasScansRemaining, showPaywall } = useSubscriptionStore();
+  const { expressMode, setExpressMode, syncToPhone } = useSettingsStore();
+  const { addItem } = useScanQueueStore();
+  const { user } = useAuthStore();
+  const convex = useConvex();
   const theme = useAppTheme();
+  const [queueSheetOpen, setQueueSheetOpen] = useState(false);
+  const queueItems = useScanQueueStore((s) => s.items);
+  const pendingCount = queueItems.filter((i) => i.status !== 'saved').length;
 
   const doCapture = useCallback(async () => {
     if (!cameraRef.current) return;
@@ -48,7 +61,7 @@ export default function ScanScreen() {
 
     detectionRef.current = 'capturing';
     setDetection('capturing');
-    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (!expressMode && pollingRef.current) clearInterval(pollingRef.current);
 
     try {
       const photo = await cameraRef.current.takePictureAsync({
@@ -56,7 +69,15 @@ export default function ScanScreen() {
         base64:  false,
         exif:    false,
       });
-      if (photo) {
+      if (!photo) return;
+
+      if (expressMode && user) {
+        const id = addItem(photo.uri);
+        processExpressScan({ id, imageUri: photo.uri, userId: user._id, convex, syncToPhone });
+        // Resume scanning immediately so the next card can be captured while this one processes
+        detectionRef.current = 'scanning';
+        setDetection('scanning');
+      } else {
         router.push({ pathname: '/(app)/scan/result', params: { imageUri: photo.uri } });
       }
     } catch {
@@ -64,7 +85,7 @@ export default function ScanScreen() {
       detectionRef.current = 'scanning';
       setDetection('scanning');
     }
-  }, [hasScansRemaining, showPaywall, router]);
+  }, [hasScansRemaining, showPaywall, router, expressMode, user, convex, syncToPhone, addItem]);
 
   const startPolling = useCallback(() => {
     pollingRef.current = setInterval(async () => {
@@ -178,17 +199,44 @@ export default function ScanScreen() {
         {/* Top Controls */}
         <SafeAreaView edges={['top']} className="px-5 pt-2">
           <View className="flex-row items-center justify-between">
-            <View className="w-10 h-10 bg-black/50 rounded-full items-center justify-center">
-              <Text className="text-white text-xs font-bold">CV</Text>
-            </View>
-            <Text className="text-white text-base font-semibold">Scan Card</Text>
             <TouchableOpacity
-              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
-              onPress={() => setFlash(!flash)}
+              onPress={() => setExpressMode(!expressMode)}
+              className="flex-row items-center h-10 px-3 rounded-full"
+              style={{ backgroundColor: expressMode ? theme.accent : 'rgba(0,0,0,0.5)' }}
             >
-              <Ionicons name={flash ? 'flash' : 'flash-off'} size={20} color="#fff" />
+              <Ionicons name="flash" size={16} color={expressMode ? '#fff' : 'rgba(255,255,255,0.7)'} />
+              <Text style={{ color: expressMode ? '#fff' : 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginLeft: 6 }}>
+                Express
+              </Text>
             </TouchableOpacity>
+            <Text className="text-white text-base font-semibold">Scan Card</Text>
+            <View className="flex-row items-center gap-2">
+              {expressMode && queueItems.length > 0 && (
+                <TouchableOpacity
+                  onPress={() => setQueueSheetOpen(true)}
+                  className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+                >
+                  <Ionicons name="layers-outline" size={18} color="#fff" />
+                  {pendingCount > 0 && (
+                    <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: theme.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{pendingCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+                onPress={() => setFlash(!flash)}
+              >
+                <Ionicons name={flash ? 'flash' : 'flash-off'} size={20} color="#fff" />
+              </TouchableOpacity>
+            </View>
           </View>
+          {expressMode && (
+            <Text className="text-white/60 text-xs text-center mt-2">
+              Express Mode on — keep scanning, cards save in the background
+            </Text>
+          )}
         </SafeAreaView>
 
         {/* Viewfinder */}
@@ -225,6 +273,42 @@ export default function ScanScreen() {
             <Text className="text-white/70 text-xs">Auto-detect active</Text>
           </View>
         </View>
+
+        {/* Express Mode: latest queue item toast */}
+        {expressMode && queueItems.length > 0 && (
+          <View className="px-5 mb-3">
+            <TouchableOpacity
+              onPress={() => setQueueSheetOpen(true)}
+              className="flex-row items-center bg-black/60 rounded-xl px-4 py-2.5"
+            >
+              {queueItems[0].status === 'processing' ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <Ionicons
+                  name={
+                    queueItems[0].status === 'saved'    ? 'checkmark-circle' :
+                    queueItems[0].status === 'duplicate' ? 'copy-outline' :
+                    'warning-outline'
+                  }
+                  size={16}
+                  color={
+                    queueItems[0].status === 'saved'    ? '#34D399' :
+                    queueItems[0].status === 'duplicate' ? '#FBBF24' :
+                    '#F87171'
+                  }
+                />
+              )}
+              <Text className="text-white text-xs ml-2 flex-1" numberOfLines={1}>
+                {queueItems[0].status === 'processing'
+                  ? 'Processing card...'
+                  : queueItems[0].contactName ?? queueItems[0].message ?? 'Card processed'}
+              </Text>
+              {queueItems.length > 1 && (
+                <Text className="text-white/50 text-xs ml-2">+{queueItems.length - 1} more</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Bottom Controls */}
         <SafeAreaView edges={['bottom']} className="pb-6">
@@ -268,6 +352,8 @@ export default function ScanScreen() {
           </Text>
         </SafeAreaView>
       </CameraView>
+
+      <ExpressQueueSheet visible={queueSheetOpen} onClose={() => setQueueSheetOpen(false)} />
     </View>
   );
 }

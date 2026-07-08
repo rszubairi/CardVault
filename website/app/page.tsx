@@ -131,8 +131,7 @@ export default function Home() {
           {/* CTA buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4" id="download">
             <a
-              href="https://github.com/rszubairi/CardVault/releases/download/v1.0.0/cardvault.ipa"
-              download
+              href="itms-services://?action=download-manifest&url=https://card-vault-livid.vercel.app/downloads/manifest.plist"
               className="flex items-center gap-3 bg-white text-gray-900 font-semibold px-7 py-3.5 rounded-xl hover:bg-gray-100 transition-colors w-full sm:w-auto justify-center"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
@@ -321,8 +320,7 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a
-              href="https://github.com/rszubairi/CardVault/releases/download/v1.0.0/cardvault.ipa"
-              download
+              href="itms-services://?action=download-manifest&url=https://card-vault-livid.vercel.app/downloads/manifest.plist"
               className="bg-brand-600 hover:bg-brand-500 text-white font-semibold px-8 py-3.5 rounded-xl transition-colors text-center glow-sm"
             >
               Download for iOS

@@ -21,6 +21,8 @@ import Badge from '../../../src/components/ui/Badge';
 import Button from '../../../src/components/ui/Button';
 import WhatsAppModal from '../../../src/components/WhatsAppModal';
 import { useAuthStore } from '../../../src/stores/authStore';
+import { useAppTheme } from '../../../src/theme/useAppTheme';
+import type { AppTheme } from '../../../src/theme/useAppTheme';
 
 const TAGS_PRESET = [
   'Investor', 'Healthcare', 'VC', 'AI', 'Government',
@@ -32,24 +34,26 @@ function InfoRow({
   label,
   value,
   onPress,
+  theme,
 }: {
   icon: string;
   label: string;
   value: string;
   onPress?: () => void;
+  theme: AppTheme;
 }) {
   return (
     <TouchableOpacity
-      className="flex-row items-start py-3 border-b border-surface-700/50"
+      style={{ flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}
       onPress={onPress}
       disabled={!onPress}
     >
-      <Ionicons name={icon as any} size={18} color="#6366F1" className="mt-0.5 mr-4" />
-      <View className="flex-1">
-        <Text className="text-slate-500 text-xs mb-0.5">{label}</Text>
-        <Text className="text-slate-200 text-sm">{value}</Text>
+      <Ionicons name={icon as any} size={18} color={theme.accent} style={{ marginTop: 2, marginRight: 16 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: theme.textMuted, fontSize: 12, marginBottom: 2 }}>{label}</Text>
+        <Text style={{ color: theme.textPrimary, fontSize: 14 }}>{value}</Text>
       </View>
-      {onPress && <Ionicons name="open-outline" size={14} color="#475569" />}
+      {onPress && <Ionicons name="open-outline" size={14} color={theme.textMuted} />}
     </TouchableOpacity>
   );
 }
@@ -57,6 +61,7 @@ function InfoRow({
 export default function ContactDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router  = useRouter();
+  const theme = useAppTheme();
   const contact    = useQuery(api.contacts.getById, { contactId: id as Id<'contacts'> });
   const notes      = useQuery(api.notes.list, { contactId: id as Id<'contacts'> });
   const cardImageUrl = useQuery(
@@ -80,9 +85,9 @@ export default function ContactDetailScreen() {
 
   if (!contact) {
     return (
-      <SafeAreaView className="flex-1 bg-surface-900 items-center justify-center">
-        <Ionicons name="person-circle-outline" size={52} color="#334155" />
-        <Text className="text-slate-400 text-base mt-3">Contact not found</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="person-circle-outline" size={52} color={theme.textMuted} />
+        <Text style={{ color: theme.textSecondary, fontSize: 16, marginTop: 12 }}>Contact not found</Text>
       </SafeAreaView>
     );
   }
@@ -114,45 +119,45 @@ export default function ContactDetailScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-900" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }} edges={['top', 'bottom']}>
       {/* Header */}
-      <View className="flex-row items-center px-5 py-3 border-b border-surface-800">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
-          <Ionicons name="arrow-back" size={24} color="#94A3B8" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginRight: 12 }}>
+          <Ionicons name="arrow-back" size={24} color={theme.textSecondary} />
         </TouchableOpacity>
-        <Text className="flex-1 text-slate-50 text-lg font-bold" numberOfLines={1}>
+        <Text style={{ flex: 1, color: theme.textPrimary, fontSize: 18, fontWeight: '700' }} numberOfLines={1}>
           {fullName}
         </Text>
         <TouchableOpacity
           onPress={() => toggleFav({ contactId: contact._id })}
-          className="mr-3"
+          style={{ marginRight: 12 }}
         >
           <Ionicons
             name={contact.favorite ? 'star' : 'star-outline'}
             size={22}
-            color={contact.favorite ? '#FBBF24' : '#64748B'}
+            color={contact.favorite ? '#FBBF24' : theme.textMuted}
           />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}/edit`)}>
-          <Ionicons name="pencil-outline" size={22} color="#64748B" />
+          <Ionicons name="pencil-outline" size={22} color={theme.textMuted} />
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Avatar + Name */}
-        <View className="items-center pt-8 pb-6 px-5">
-          <View className="w-20 h-20 bg-primary-800 rounded-full items-center justify-center mb-4">
-            <Text className="text-primary-200 text-3xl font-bold">{initials || '?'}</Text>
+        <View style={{ alignItems: 'center', paddingTop: 32, paddingBottom: 24, paddingHorizontal: 20 }}>
+          <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: theme.accent + '30', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+            <Text style={{ color: theme.accent, fontSize: 30, fontWeight: '700' }}>{initials || '?'}</Text>
           </View>
-          <Text className="text-slate-50 text-2xl font-bold">{fullName}</Text>
+          <Text style={{ color: theme.textPrimary, fontSize: 24, fontWeight: '700' }}>{fullName}</Text>
           {contact.designation && (
-            <Text className="text-slate-400 text-base mt-1">{contact.designation}</Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 16, marginTop: 4 }}>{contact.designation}</Text>
           )}
           {contact.company && (
-            <Text className="text-primary-400 text-sm mt-0.5">{contact.company}</Text>
+            <Text style={{ color: theme.accent, fontSize: 14, marginTop: 2 }}>{contact.company}</Text>
           )}
           {contact.country && (
-            <Text className="text-slate-500 text-xs mt-1">{contact.country}</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>{contact.country}</Text>
           )}
         </View>
 
@@ -207,23 +212,23 @@ export default function ContactDetailScreen() {
 
         {/* Contact Info */}
         <Card className="mx-5 mb-4 px-5">
-          {contact.email    && <InfoRow icon="mail-outline"     label="Email"   value={contact.email}    onPress={openEmail} />}
-          {contact.phone    && <InfoRow icon="call-outline"     label="Phone"   value={contact.phone}    onPress={openPhone} />}
-          {contact.mobile   && <InfoRow icon="phone-portrait-outline" label="Mobile" value={contact.mobile} onPress={openPhone} />}
-          {contact.website  && <InfoRow icon="globe-outline"    label="Website" value={contact.website}  onPress={() => Linking.openURL(contact.website!)} />}
-          {contact.address  && <InfoRow icon="location-outline" label="Address" value={contact.address} />}
-          {contact.linkedinUrl && <InfoRow icon="logo-linkedin" label="LinkedIn" value="View Profile" onPress={openLinkedIn} />}
+          {contact.email    && <InfoRow theme={theme} icon="mail-outline"     label="Email"   value={contact.email}    onPress={openEmail} />}
+          {contact.phone    && <InfoRow theme={theme} icon="call-outline"     label="Phone"   value={contact.phone}    onPress={openPhone} />}
+          {contact.mobile   && <InfoRow theme={theme} icon="phone-portrait-outline" label="Mobile" value={contact.mobile} onPress={openPhone} />}
+          {contact.website  && <InfoRow theme={theme} icon="globe-outline"    label="Website" value={contact.website}  onPress={() => Linking.openURL(contact.website!)} />}
+          {contact.address  && <InfoRow theme={theme} icon="location-outline" label="Address" value={contact.address} />}
+          {contact.linkedinUrl && <InfoRow theme={theme} icon="logo-linkedin" label="LinkedIn" value="View Profile" onPress={openLinkedIn} />}
         </Card>
 
         {/* Tags */}
         <Card className="mx-5 mb-4 p-4">
-          <Text className="text-slate-400 text-xs uppercase tracking-widest mb-3">Tags</Text>
+          <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Tags</Text>
           <View className="flex-row flex-wrap gap-2">
             {contact.tags?.map((tag) => (
               <Badge key={tag} label={tag} variant="primary" />
             ))}
             {contact.tags?.length === 0 && (
-              <Text className="text-slate-500 text-sm">No tags yet</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>No tags yet</Text>
             )}
           </View>
         </Card>
@@ -231,36 +236,39 @@ export default function ContactDetailScreen() {
         {/* Notes */}
         <Card className="mx-5 mb-4 p-4">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-slate-400 text-xs uppercase tracking-widest">Notes</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5 }}>Notes</Text>
             <View className="flex-row gap-3">
               <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}/timeline`)}>
-                <Ionicons name="time-outline" size={20} color="#64748B" />
+                <Ionicons name="time-outline" size={20} color={theme.textMuted} />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}/notes`)}>
-                <Ionicons name="add" size={20} color="#6366F1" />
+                <Ionicons name="add" size={20} color={theme.accent} />
               </TouchableOpacity>
             </View>
           </View>
           {notes && notes.length > 0 ? (
-            notes.slice(0, 2).map((note) => (
-              <View key={note._id} className="mb-3 pb-3 border-b border-surface-700 last:border-0">
-                <Text className="text-slate-300 text-sm leading-5">{note.content}</Text>
-                <Text className="text-slate-500 text-xs mt-1">
+            notes.slice(0, 2).map((note, index) => (
+              <View
+                key={note._id}
+                style={{ marginBottom: 12, paddingBottom: 12, borderBottomWidth: index === notes.slice(0, 2).length - 1 ? 0 : 1, borderBottomColor: theme.border }}
+              >
+                <Text style={{ color: theme.textSecondary, fontSize: 14, lineHeight: 20 }}>{note.content}</Text>
+                <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 4 }}>
                   {new Date(note.createdAt).toLocaleDateString()}
                 </Text>
               </View>
             ))
           ) : (
-            <Text className="text-slate-500 text-sm">No notes yet</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 14 }}>No notes yet</Text>
           )}
         </Card>
 
         {/* Follow-up */}
         <Card className="mx-5 mb-4 p-4">
           <View className="flex-row items-center justify-between">
-            <Text className="text-slate-400 text-xs uppercase tracking-widest">Follow-up</Text>
+            <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5 }}>Follow-up</Text>
             <TouchableOpacity onPress={() => setFollowUpModal(true)}>
-              <Ionicons name="calendar-outline" size={20} color="#6366F1" />
+              <Ionicons name="calendar-outline" size={20} color={theme.accent} />
             </TouchableOpacity>
           </View>
           {contact.followUpDate ? (
@@ -268,15 +276,15 @@ export default function ContactDetailScreen() {
               <Ionicons
                 name={contact.followUpDate <= Date.now() ? 'warning-outline' : 'time-outline'}
                 size={15}
-                color={contact.followUpDate <= Date.now() ? '#EF4444' : '#6366F1'}
+                color={contact.followUpDate <= Date.now() ? theme.error : theme.accent}
               />
-              <Text className={`ml-2 text-sm ${contact.followUpDate <= Date.now() ? 'text-red-400' : 'text-slate-200'}`}>
+              <Text style={{ marginLeft: 8, fontSize: 14, color: contact.followUpDate <= Date.now() ? theme.error : theme.textPrimary }}>
                 {new Date(contact.followUpDate).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </Text>
             </View>
           ) : (
             <TouchableOpacity onPress={() => setFollowUpModal(true)} className="mt-2">
-              <Text className="text-slate-500 text-sm">Tap to set a follow-up date</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 14 }}>Tap to set a follow-up date</Text>
             </TouchableOpacity>
           )}
         </Card>
@@ -285,7 +293,7 @@ export default function ContactDetailScreen() {
         {myOrg && (
           <Card className="mx-5 mb-4 p-4">
             <View className="flex-row items-center justify-between">
-              <Text className="text-slate-400 text-xs uppercase tracking-widest">Team Sharing</Text>
+              <Text style={{ color: theme.textMuted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1.5 }}>Team Sharing</Text>
               <TouchableOpacity
                 onPress={() => {
                   if (contact.isShared) {
@@ -295,14 +303,14 @@ export default function ContactDetailScreen() {
                   }
                 }}
               >
-                <View className={`px-3 py-1 rounded-full ${contact.isShared ? 'bg-primary-500' : 'bg-surface-700'}`}>
-                  <Text className={`text-xs font-medium ${contact.isShared ? 'text-white' : 'text-slate-400'}`}>
+                <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: contact.isShared ? theme.accent : theme.surfaceAlt }}>
+                  <Text style={{ fontSize: 12, fontWeight: '500', color: contact.isShared ? '#fff' : theme.textMuted }}>
                     {contact.isShared ? 'Shared' : 'Private'}
                   </Text>
                 </View>
               </TouchableOpacity>
             </View>
-            <Text className="text-slate-500 text-xs mt-1.5">
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginTop: 6 }}>
               {contact.isShared
                 ? `Visible to all members of ${myOrg.name}`
                 : `Only visible to you. Tap to share with ${myOrg.name}.`}
@@ -313,16 +321,16 @@ export default function ContactDetailScreen() {
         {/* Relationship score */}
         {contact.relationshipScore !== undefined && contact.relationshipScore > 0 && (
           <View className="mx-5 flex-row items-center mb-4 gap-3">
-            <View className="flex-1 bg-surface-800 rounded-xl px-4 py-2.5 flex-row items-center">
-              <Ionicons name="heart-outline" size={14} color="#6366F1" />
-              <Text className="text-slate-400 text-xs ml-1.5 flex-1">Relationship score</Text>
-              <Text className="text-primary-400 text-sm font-semibold">{contact.relationshipScore}</Text>
+            <View style={{ flex: 1, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, flexDirection: 'row', alignItems: 'center' }}>
+              <Ionicons name="heart-outline" size={14} color={theme.accent} />
+              <Text style={{ color: theme.textMuted, fontSize: 12, marginLeft: 6, flex: 1 }}>Relationship score</Text>
+              <Text style={{ color: theme.accent, fontSize: 14, fontWeight: '600' }}>{contact.relationshipScore}</Text>
             </View>
             <TouchableOpacity
               onPress={() => recalcScore({ contactId: contact._id })}
-              className="bg-surface-700 rounded-xl px-3 py-2.5"
+              style={{ backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 }}
             >
-              <Ionicons name="refresh-outline" size={16} color="#64748B" />
+              <Ionicons name="refresh-outline" size={16} color={theme.textMuted} />
             </TouchableOpacity>
           </View>
         )}
@@ -330,8 +338,8 @@ export default function ContactDetailScreen() {
         {/* OCR Confidence */}
         {contact.ocrConfidence !== undefined && (
           <View className="mx-5 flex-row items-center mb-4">
-            <Ionicons name="analytics-outline" size={14} color="#475569" />
-            <Text className="text-slate-500 text-xs ml-1.5">
+            <Ionicons name="analytics-outline" size={14} color={theme.textMuted} />
+            <Text style={{ color: theme.textMuted, fontSize: 12, marginLeft: 6 }}>
               OCR confidence: {contact.ocrConfidence}%
             </Text>
           </View>
@@ -350,12 +358,12 @@ export default function ContactDetailScreen() {
 
       {/* Follow-up date picker modal */}
       <Modal visible={followUpModal} transparent animationType="slide" onRequestClose={() => setFollowUpModal(false)}>
-        <View className="flex-1 bg-black/60 justify-end">
-          <View className="bg-surface-800 rounded-t-3xl p-5 pb-10">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: theme.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 }}>
             <View className="flex-row items-center mb-5">
-              <Text className="text-slate-50 text-lg font-bold flex-1">Set Follow-up Date</Text>
+              <Text style={{ color: theme.textPrimary, fontSize: 18, fontWeight: '700', flex: 1 }}>Set Follow-up Date</Text>
               <TouchableOpacity onPress={() => setFollowUpModal(false)}>
-                <Ionicons name="close" size={22} color="#94A3B8" />
+                <Ionicons name="close" size={22} color={theme.textSecondary} />
               </TouchableOpacity>
             </View>
 
@@ -375,17 +383,17 @@ export default function ContactDetailScreen() {
                   setFollowUpDate({ contactId: contact._id, followUpDate: d.getTime() });
                   setFollowUpModal(false);
                 }}
-                className="bg-surface-700 rounded-xl px-5 py-3.5 mb-3"
+                style={{ backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14, marginBottom: 12 }}
               >
-                <Text className="text-slate-200 text-sm font-medium">{label}</Text>
+                <Text style={{ color: theme.textPrimary, fontSize: 14, fontWeight: '500' }}>{label}</Text>
               </TouchableOpacity>
             ))}
 
             {/* Custom date input */}
             <TextInput
-              className="bg-surface-700 rounded-xl px-5 py-3.5 text-slate-100 text-sm mb-3"
+              style={{ backgroundColor: theme.surfaceAlt, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 14, color: theme.textPrimary, fontSize: 14, marginBottom: 12 }}
               placeholder="YYYY-MM-DD (custom date)"
-              placeholderTextColor="#64748B"
+              placeholderTextColor={theme.textMuted}
               value={followUpText}
               onChangeText={setFollowUpText}
               keyboardType="numbers-and-punctuation"

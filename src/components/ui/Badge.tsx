@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useAppTheme } from '../../theme/useAppTheme';
 
 type BadgeVariant = 'primary' | 'success' | 'warning' | 'error' | 'neutral';
 
@@ -8,19 +9,20 @@ interface BadgeProps {
   variant?: BadgeVariant;
 }
 
-const variants: Record<BadgeVariant, { bg: string; text: string }> = {
-  primary: { bg: 'bg-primary-900',    text: 'text-primary-300' },
-  success: { bg: 'bg-emerald-900/50', text: 'text-emerald-400' },
-  warning: { bg: 'bg-amber-900/50',   text: 'text-amber-400'   },
-  error:   { bg: 'bg-red-900/50',     text: 'text-red-400'     },
-  neutral: { bg: 'bg-surface-700',    text: 'text-slate-300'   },
-};
-
 export default function Badge({ label, variant = 'neutral' }: BadgeProps) {
-  const { bg, text } = variants[variant];
+  const theme = useAppTheme();
+  const colors: Record<BadgeVariant, string> = {
+    primary: theme.accent,
+    success: theme.success,
+    warning: theme.warning,
+    error:   theme.error,
+    neutral: theme.textMuted,
+  };
+  const color = colors[variant];
+
   return (
-    <View className={`${bg} px-2 py-0.5 rounded-full`}>
-      <Text className={`${text} text-xs font-medium`}>{label}</Text>
+    <View style={{ backgroundColor: variant === 'neutral' ? theme.surfaceAlt : color + '20', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
+      <Text style={{ color, fontSize: 12, fontWeight: '500' }}>{label}</Text>
     </View>
   );
 }
