@@ -77,6 +77,11 @@
         ],
         "listUnknownPackages": false
       }
+    },
+    "autolinking": {
+      "ios": {
+        "buildFromSource": ["react-native-reanimated", "react-native-worklets"]
+      }
     }
   },
   "devDependencies": {

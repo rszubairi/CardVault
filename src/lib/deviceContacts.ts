@@ -1,4 +1,5 @@
 import * as Contacts from 'expo-contacts';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ID_MAP_KEY = '@cardvault/device_contact_ids';
@@ -34,21 +35,24 @@ async function saveIdMap(map: Record<string, string>) {
 
 // ─── Build a Contacts.Contact from a Convex contact ──────────────────────────
 
-function toDeviceContact(c: ConvexContact): Contacts.Contact {
-  const contact: Contacts.Contact = {
+function toDeviceContact(c: ConvexContact): any {
+  const contact: any = {
     contactType: Contacts.ContactTypes.Person,
     firstName:   c.firstName,
     lastName:    c.lastName,
     jobTitle:    c.designation,
     company:     c.company,
-    note:        `CardVault:${c._id}`,
   };
+
+  if (Platform.OS !== 'ios') {
+    contact.note = `CardVault:${c._id}`;
+  }
 
   if (c.email) {
     contact.emails = [{ email: c.email, label: 'work', id: '0' }];
   }
 
-  const phones: Contacts.PhoneNumber[] = [];
+  const phones: any[] = [];
   if (c.phone)  phones.push({ number: c.phone,  label: 'work',   id: '0' });
   if (c.mobile) phones.push({ number: c.mobile, label: 'mobile', id: '1' });
   if (phones.length) contact.phoneNumbers = phones;
@@ -111,13 +115,86 @@ export async function syncAllToDevice(contacts: ConvexContact[]): Promise<void> 
   if (!granted) return;
 
   const idMap = await loadIdMap();
-
-  // Collect CardVault IDs already written to device contacts via the note field
-  const existing = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Note] });
   const alreadySynced = new Set<string>();
-  for (const dc of existing.data) {
-    const match = dc.note?.match(/^CardVault:(.+)$/);
-    if (match) alreadySynced.add(match[1]);
+
+  if (Platform.OS === 'ios') {
+    // On iOS, accessing the note field is restricted by Apple and crashes the app.
+    // We fetch contacts with names, emails, and phones to construct a lookup map.
+    const existing = await Contacts.getContactsAsync({
+      fields: [
+        Contacts.Fields.FirstName,
+        Contacts.Fields.LastName,
+        Contacts.Fields.Emails,
+        Contacts.Fields.PhoneNumbers,
+      ],
+    });
+
+    // Create a lookup for existing contacts by name/email/phone
+    const existingMap = new Map<string, string>(); // key -> device ID
+    for (const dc of existing.data) {
+      if (!dc.id) continue;
+      const nameKey = `${dc.firstName ?? ''}|${dc.lastName ?? ''}`.toLowerCase().trim();
+      if (nameKey && nameKey !== '|') {
+        existingMap.set(`name:${nameKey}`, dc.id);
+      }
+      if (dc.emails) {
+        for (const emailObj of dc.emails) {
+          if (emailObj.email) {
+            existingMap.set(`email:${emailObj.email.toLowerCase().trim()}`, dc.id);
+          }
+        }
+      }
+      if (dc.phoneNumbers) {
+        for (const phoneObj of dc.phoneNumbers) {
+          if (phoneObj.number) {
+            const cleanPhone = phoneObj.number.replace(/\D/g, '');
+            if (cleanPhone) {
+              existingMap.set(`phone:${cleanPhone}`, dc.id);
+            }
+          }
+        }
+      }
+    }
+
+    for (const c of contacts) {
+      // 1. Check idMap (AsyncStorage mapping)
+      if (idMap[c._id]) {
+        alreadySynced.add(c._id);
+        continue;
+      }
+
+      // 2. Check for matches in existing device contacts to prevent duplicates
+      let matchedDeviceId: string | undefined;
+
+      if (c.email) {
+        matchedDeviceId = existingMap.get(`email:${c.email.toLowerCase().trim()}`);
+      }
+      if (!matchedDeviceId && (c.phone || c.mobile)) {
+        const cleanPhone = (c.phone || c.mobile || '').replace(/\D/g, '');
+        if (cleanPhone) {
+          matchedDeviceId = existingMap.get(`phone:${cleanPhone}`);
+        }
+      }
+      if (!matchedDeviceId) {
+        const nameKey = `${c.firstName ?? ''}|${c.lastName ?? ''}`.toLowerCase().trim();
+        if (nameKey && nameKey !== '|') {
+          matchedDeviceId = existingMap.get(`name:${nameKey}`);
+        }
+      }
+
+      if (matchedDeviceId) {
+        // Contact is already on the device, map it
+        idMap[c._id] = matchedDeviceId;
+        alreadySynced.add(c._id);
+      }
+    }
+  } else {
+    // On Android, we can safely use the note field
+    const existing = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Note] });
+    for (const dc of existing.data) {
+      const match = dc.note?.match(/^CardVault:(.+)$/);
+      if (match) alreadySynced.add(match[1]);
+    }
   }
 
   for (const c of contacts) {
