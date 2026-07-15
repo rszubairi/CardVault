@@ -48,3 +48,5 @@ website/public/downloads/*.apk
 
 # OTA install manifest is tracked despite the global *.plist ignore rule
 !website/public/downloads/manifest.plist
+cardvault.ipa
+cardvault.ipa
