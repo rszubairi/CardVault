@@ -64,8 +64,8 @@ export default function LoginScreen() {
           const { getAuth, signInWithCredential, GoogleAuthProvider } = require('@react-native-firebase/auth');
 
           GoogleSignin.configure({
-            webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '1055063850419-74q1iic0psd4cgu94gg0fc95tfpc7ngn.apps.googleusercontent.com',
-            iosClientId: '140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com',
+            webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB,
+            iosClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS,
           });
 
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
@@ -111,7 +111,7 @@ export default function LoginScreen() {
 
       // Web fallback: redirect-based PKCE flow via Convex callback
       const CONVEX_SITE_URL = process.env.EXPO_PUBLIC_CONVEX_SITE_URL ?? 'https://blissful-sparrow-472.eu-west-1.convex.site';
-      const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '1055063850419-74q1iic0psd4cgu94gg0fc95tfpc7ngn.apps.googleusercontent.com';
+      const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '';
       const redirectUri = `${CONVEX_SITE_URL}/auth/google`;
       const codeVerifier = generateRandomString(64);
       const codeChallenge = await sha256Base64URL(codeVerifier);

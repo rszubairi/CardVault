@@ -10,7 +10,9 @@
       "env": {
         "APP_VARIANT": "consumer",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     },
     "preview": {
@@ -18,7 +20,9 @@
       "env": {
         "APP_VARIANT": "consumer",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -26,7 +30,9 @@
       "env": {
         "APP_VARIANT": "consumer",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     },
     "enterprise-development": {
@@ -35,7 +41,9 @@
       "env": {
         "APP_VARIANT": "enterprise",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     },
     "enterprise-preview": {
@@ -43,7 +51,9 @@
       "env": {
         "APP_VARIANT": "enterprise",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     },
     "enterprise-production": {
@@ -51,7 +61,9 @@
       "env": {
         "APP_VARIANT": "enterprise",
         "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
-        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB": "140144371581-g7o17454ettma6iljlpc07q2n5304qj5.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID_IOS": "140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com"
       }
     }
   },
