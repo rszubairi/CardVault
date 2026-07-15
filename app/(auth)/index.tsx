@@ -65,6 +65,7 @@ export default function LoginScreen() {
 
           GoogleSignin.configure({
             webClientId: process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID_WEB ?? '1055063850419-74q1iic0psd4cgu94gg0fc95tfpc7ngn.apps.googleusercontent.com',
+            iosClientId: '140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44.apps.googleusercontent.com',
           });
 
           await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });

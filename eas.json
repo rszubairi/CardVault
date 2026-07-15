@@ -8,38 +8,50 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "APP_VARIANT": "consumer"
+        "APP_VARIANT": "consumer",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "APP_VARIANT": "consumer"
+        "APP_VARIANT": "consumer",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "consumer"
+        "APP_VARIANT": "consumer",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     },
     "enterprise-development": {
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "APP_VARIANT": "enterprise"
+        "APP_VARIANT": "enterprise",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     },
     "enterprise-preview": {
       "distribution": "internal",
       "env": {
-        "APP_VARIANT": "enterprise"
+        "APP_VARIANT": "enterprise",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     },
     "enterprise-production": {
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "enterprise"
+        "APP_VARIANT": "enterprise",
+        "EXPO_PUBLIC_CONVEX_URL": "https://blissful-sparrow-472.eu-west-1.convex.cloud",
+        "EXPO_PUBLIC_CONVEX_SITE_URL": "https://blissful-sparrow-472.eu-west-1.convex.site"
       }
     }
   },

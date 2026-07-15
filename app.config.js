@@ -155,7 +155,12 @@ export default {
       ],
       './plugins/withModularHeaders',
       'expo-router',
-      '@react-native-google-signin/google-signin',
+      [
+        '@react-native-google-signin/google-signin',
+        {
+          iosUrlScheme: 'com.googleusercontent.apps.140144371581-5k8c18qmn6m07ec6krrjll4r43c17s44',
+        },
+      ],
       'expo-secure-store',
       [
         'expo-splash-screen',
