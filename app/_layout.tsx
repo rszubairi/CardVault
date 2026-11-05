@@ -69,9 +69,11 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
         }
 
         if (session) {
-          const storedUserId = session.user?._id ?? '';
-          const isValidConvexId = storedUserId.startsWith('users:') || storedUserId.startsWith('u');
-          if (!isValidConvexId) {
+          // Convex IDs are opaque strings that can start with any character,
+          // so only require a non-empty string here.
+          const storedUserId = session.user?._id;
+          const hasValidUserId = typeof storedUserId === 'string' && storedUserId.length > 0;
+          if (!hasValidUserId) {
             clearSession().then(() => setLoading(false));
           } else {
             setToken(session.token);
